@@ -2,10 +2,11 @@
 
 const mongoose = require('mongoose');
 const aggregatePaginate = require("mongoose-aggregate-paginate-v2");
-const Schema = mongoose.Schema;
+const { ObjectId } = mongoose.Schema;
 
 let OrderItemSchema = new mongoose.Schema (
   {
+    orderId: { type: ObjectId, ref: "Order" },
     productId: { type: String, default: '' },
   	productName: { type: String, default: '' },
     qty: { type: Number, default: 0 },

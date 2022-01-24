@@ -1,14 +1,13 @@
 const Order = require('../models/Order.js');
 const OrderItem = require('../models/OrderItem.js');
 const Product = require('../models/Product.js');
+const mongoose = require('mongoose');
 
 const { sendError, sendSuccess, convertMomentWithFormat } = require ('../utils/methods');
 
 //LIST ALL ORDERS
 exports.list = (req, res, next) => {
     const { pageIndex, pageSize, sort_by, sort_direction } = req.query;
-
-    console.log("REQ QUERYY", req.query)
 
     const page = pageIndex;
     const limit = pageSize;
@@ -61,6 +60,56 @@ exports.list = (req, res, next) => {
 
 
 
+//LIST OF ORDER ITEMS PER ID
+exports.listOrderItems = (req, res, next) => {
+    const { pageIndex, pageSize, sort_by, sort_direction } = req.query;
+
+    const page = pageIndex;
+    const limit = pageSize;
+    const sortDirection = sort_direction ? sort_direction.toLowerCase() : undefined;
+
+    let sortPageLimit = {
+      page,
+      limit
+    };
+
+    if (sort_by && sortDirection) {
+      sortPageLimit = {
+        sort: { [sort_by] : sortDirection },
+        page,
+        limit,
+      };
+    }
+
+    const orderFieldsFilter = {
+      orderId: new mongoose.Types.ObjectId(req.query.orderId),
+      $text: req.query.name ? { $search: req.query.name } : undefined,
+    };
+
+    // Will remove a key if that key is undefined
+    Object.keys(orderFieldsFilter).forEach(key => orderFieldsFilter[key] === undefined && delete orderFieldsFilter[key]);
+
+    const filterOptions = [
+      { $match: orderFieldsFilter },
+    ];
+
+    const aggregateQuery = OrderItem.aggregate(filterOptions);
+
+    OrderItem.aggregatePaginate(aggregateQuery,
+      sortPageLimit,
+      (err, result) => {
+      if (err) {
+        console.log("ERRoRRRRRRRRRRRRRRRRR", err)
+        return sendError(res, err, 'Server Failed');
+      } else {
+        return sendSuccess(res, result);
+      }
+    });
+};
+
+
+
+
 
 
 
@@ -89,38 +138,29 @@ exports.add = (req, res, next) => {
 }
 
 
-
-
-
-
 //GET BY ID
-exports.getById = (req, res, next) => {
-  Order.findById(req.params.id, function (err, order) {
-    if (err || !order) {
-      return sendError(res, err, 'Cannot get order')
+exports.getById = (req, res, next)=>{
+  Order.findById(req.params.id).populate('orderItem').exec((err, order) => {
+    if(err || !order){
+      return sendSuccess(res, order)
     } else {
       return sendSuccess(res, order)
     }
   });
-}
-
-
-
-
+};
 
 
 //UPDATE BY ID
-exports.updateById = (req, res, next) => {
-  Order.findByIdAndUpdate(req.params.id, req.body, { new: true }, function (err, order) {
-    if (err || !order) {
-      return sendError(res, err, 'Cannot update order')
+exports.updateById = (req, res, next)=>{
+  Order.findByIdAndUpdate(req.params.id, req.body, { new: true } ).populate('orderItem').exec((err, order) => {
+    console.log("REQ BODYYYYYYYYYYYYYY", req.body)
+    if(err || !order){
+      return sendSuccess(res, order)
     } else {
       return sendSuccess(res, order)
     }
   });
-}
-
-
+};
 
 
 
@@ -152,9 +192,7 @@ exports.addOrderItem = (req, res, next) => {
     } else {
       Order.findByIdAndUpdate(req.params.id).populate('orderItem').exec((err, callbackOrder) => {
           if(err || !callbackOrder){
-            return res.status(400).json({
-              error:'Order not found'
-            });
+            return sendError(res, err, 'Order not found.')
           } else {
             callbackOrder.orderItem.push(orderItem)
 
@@ -163,6 +201,7 @@ exports.addOrderItem = (req, res, next) => {
                 return sendError(res, err, 'Cannot get product')
               } else {
                 orderItem.total = product.price * orderItem.qty;
+                orderItem.productName = product.name;
                 orderItem.credit = 'false';
 
                 callbackOrder.totalPrice = callbackOrder.totalPrice + orderItem.total;
