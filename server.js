@@ -21,6 +21,7 @@ app.use(bodyParser.json());
 //IMPORTED ROUTES
 const product = require('./app/routes/product');
 const order = require('./app/routes/order');
+const delivery = require('./app/routes/delivery');
 
 
 
@@ -44,6 +45,7 @@ connection.once('open', () => {
 //ROUTES
 app.use('/product', product);
 app.use('/order', order);
+app.use('/delivery', delivery);
 
 
 

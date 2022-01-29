@@ -9,6 +9,8 @@ const { sendError, sendSuccess, convertMomentWithFormat } = require ('../utils/m
 exports.list = (req, res, next) => {
     const { pageIndex, pageSize, sort_by, sort_direction } = req.query;
 
+    console.log("REQ QUERYYYYYY ORDER", req.query)
+
     const page = pageIndex;
     const limit = pageSize;
     const sortDirection = sort_direction ? sort_direction.toLowerCase() : undefined;
@@ -31,7 +33,7 @@ exports.list = (req, res, next) => {
       monthOrdered: req.query.monthOrdered ? +req.query.monthOrdered : undefined,
       dateOrdered: req.query.dateOrdered ? +req.query.dateOrdered : undefined,
       yearOrdered: req.query.yearOrdered ? +req.query.yearOrdered : undefined,
-      $text: req.query.name ? { $search: req.query.name } : undefined,
+      $text: req.query.customerName ? { $search: req.query.customerName } : undefined,
     };
 
     // Will remove a key if that key is undefined
@@ -184,37 +186,45 @@ exports.deleteById = (req, res, next) => {
 
 // ADD AN ORDER ITEM
 exports.addOrderItem = (req, res, next) => {
+
   const orderItem = new OrderItem(req.body);
+  
+  Order.findByIdAndUpdate(req.params.id).populate('orderItem').exec((err, callbackOrder) => {
+      if(err || !callbackOrder){
+        return sendError(res, err, 'Order not found.')
+      } else {
 
-  orderItem.save((err, orderItem) => {
-    if (err) {
-      return sendError(res, {}, 'Server failed');
-    } else {
-      Order.findByIdAndUpdate(req.params.id).populate('orderItem').exec((err, callbackOrder) => {
-          if(err || !callbackOrder){
-            return sendError(res, err, 'Order not found.')
+        Product.findById(req.body.productId, function (err, product) {
+          if (err || !product) {
+            return sendError(res, err, 'Cannot get product')
           } else {
-            callbackOrder.orderItem.push(orderItem)
 
-            Product.findById(req.body.productId, function (err, product) {
-              if (err || !product) {
-                return sendError(res, err, 'Cannot get product')
-              } else {
-                orderItem.total = product.price * orderItem.qty;
-                orderItem.productName = product.name;
-                orderItem.credit = 'false';
+            if (product.stocks < orderItem.qty) {
+              console.log("PASOK SA ERROR")
+              return sendError(res, err, 'Sorry this product is short for stocks to fulfill your quantity')
+            } else {
+              callbackOrder.orderItem.push(orderItem);
 
-                callbackOrder.totalPrice = callbackOrder.totalPrice + orderItem.total;
+              orderItem.total = product.price * orderItem.qty;
+              orderItem.productName = product.name;
+              orderItem.credit = 'false';
 
-                orderItem.save();
-                callbackOrder.save();
-                return sendSuccess(res, callbackOrder)
-              }
-            });
+              callbackOrder.totalPrice = callbackOrder.totalPrice + orderItem.total;
 
-            // return sendSuccess(res, callbackOrder);
+              product.stocks = product.stocks - orderItem.qty;
+
+
+              product.save();
+              orderItem.save();
+              callbackOrder.save();
+
+              return sendSuccess(res, callbackOrder)
+            }
           }
-        })
+        });
+
+        // return sendSuccess(res, callbackOrder);
       }
-  });
+    })
+
 };

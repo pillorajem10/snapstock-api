@@ -97,6 +97,7 @@ exports.updateById = (req, res, next) => {
     if (err || !prod) {
       return sendError(res, err, 'Cannot update product')
     } else {
+      console.log("REQ BODYYYYYYYYYYYYYY", req.body)
       return sendSuccess(res, prod)
     }
   });
@@ -114,6 +115,21 @@ exports.deleteById = (req, res, next) => {
       return sendError(res, {}, 'Cannot delete product');
     } else {
       return sendSuccess(res, product);
+    }
+  });
+}
+
+
+//ADD QUANTITY IN PRODUCTS
+exports.addQuantityOfProds = (req, res, next) => {
+  Product.findById(req.params.id, function (err, prod) {
+    if (err || !prod) {
+      return sendError(res, err, 'Cannot get product')
+    } else {
+      prod.stocks = prod.stocks + req.body.addedStocks;
+      prod.save();
+
+      return sendSuccess(res, prod)
     }
   });
 }
