@@ -7,7 +7,7 @@ const { sendError, sendSuccess, convertMomentWithFormat } = require ('../utils/m
 
 //LIST ALL ORDERS
 exports.list = (req, res, next) => {
-    const { pageIndex, pageSize, sort_by, sort_direction } = req.query;
+    const { pageIndex, pageSize, sort_by, sort_direction, customerName } = req.query;
 
     console.log("REQ QUERYYYYYY ORDER", req.query)
 
@@ -33,8 +33,12 @@ exports.list = (req, res, next) => {
       monthOrdered: req.query.monthOrdered ? +req.query.monthOrdered : undefined,
       dateOrdered: req.query.dateOrdered ? +req.query.dateOrdered : undefined,
       yearOrdered: req.query.yearOrdered ? +req.query.yearOrdered : undefined,
-      $text: req.query.customerName ? { $search: req.query.customerName } : undefined,
+      // $text: req.query.customerName ? { $search: req.query.customerName } : undefined,
     };
+
+    if (customerName) {
+      orderFieldsFilter.customerName = { $regex: customerName, $options: 'i' }; // Case-insensitive regex search
+    }
 
     // Will remove a key if that key is undefined
     Object.keys(orderFieldsFilter).forEach(key => orderFieldsFilter[key] === undefined && delete orderFieldsFilter[key]);
@@ -188,7 +192,7 @@ exports.deleteById = (req, res, next) => {
 exports.addOrderItem = (req, res, next) => {
 
   const orderItem = new OrderItem(req.body);
-  
+
   Order.findByIdAndUpdate(req.params.id).populate('orderItem').exec((err, callbackOrder) => {
       if(err || !callbackOrder){
         return sendError(res, err, 'Order not found.')

@@ -22,6 +22,8 @@ app.use(bodyParser.json());
 const product = require('./app/routes/product');
 const order = require('./app/routes/order');
 const delivery = require('./app/routes/delivery');
+const user = require('./app/routes/user');
+const auth = require('./app/routes/auth');
 
 
 
@@ -46,6 +48,8 @@ connection.once('open', () => {
 app.use('/product', product);
 app.use('/order', order);
 app.use('/delivery', delivery);
+app.use('/user', user);
+app.use('/auth', auth);
 
 
 

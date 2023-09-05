@@ -3,7 +3,7 @@ const Product = require('../models/Product.js');
 const { sendError, sendSuccess } = require ('../utils/methods');
 
 //LIST ALL PRODUCTS
-exports.list = (req, res, next) => {
+/*exports.list = (req, res, next) => {
     const { pageIndex, pageSize, sort_by, sort_direction } = req.query;
 
     console.log("REQ QUERYY", req.query)
@@ -49,8 +49,59 @@ exports.list = (req, res, next) => {
         return sendSuccess(res, result);
       }
     });
-};
+};*/
 
+
+// LIST ALL PRODUCTS
+exports.list = (req, res, next) => {
+  const { pageIndex, pageSize, sort_by, sort_direction, name } = req.query;
+
+  console.log("REQ QUERYY", req.query);
+
+  const page = pageIndex;
+  const limit = pageSize;
+  const sortDirection = sort_direction ? sort_direction.toLowerCase() : undefined;
+
+  let sortPageLimit = {
+    page,
+    limit
+  };
+
+  if (sort_by && sortDirection) {
+    sortPageLimit = {
+      sort: { [sort_by]: sortDirection },
+      page,
+      limit,
+    };
+  }
+
+  const productFieldsFilter = {
+    stock: req.query.minimumPrice,
+  };
+
+  // Add search by product name if 'name' query parameter is provided
+  if (name) {
+    productFieldsFilter.name = { $regex: name, $options: 'i' }; // Case-insensitive regex search
+  }
+
+  // Will remove a key if that key is undefined
+  Object.keys(productFieldsFilter).forEach(key => productFieldsFilter[key] === undefined && delete productFieldsFilter[key]);
+
+  const filterOptions = [
+    { $match: productFieldsFilter },
+  ];
+
+  const aggregateQuery = Product.aggregate(filterOptions);
+
+  Product.aggregatePaginate(aggregateQuery, sortPageLimit, (err, result) => {
+    if (err) {
+      console.log("ERRoRRRRRRRRRRRRRRRRR", err)
+      return sendError(res, err, 'Server Failed');
+    } else {
+      return sendSuccess(res, result);
+    }
+  });
+};
 
 
 
