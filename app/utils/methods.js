@@ -25,6 +25,17 @@ exports.sendError = (v, data, msg = '', errNo = 400, code = 101) => {
   });
 };
 
+exports.sendErrorUnauthorized = (v, data, msg = '', errNo = 401, code = 101) => {
+  return v.status(errNo).json({
+    author: randomAuthor(),
+    msg,
+    data,
+    success: false,
+    version: '0.0.1',
+    code
+  });
+};
+
 exports.sendSuccess = (v, data, msg = '', sNum = 200, code = 0) => {
   return v.json({
     author: randomAuthor(),
@@ -34,4 +45,16 @@ exports.sendSuccess = (v, data, msg = '', sNum = 200, code = 0) => {
     version: '0.0.1',
     code
   });
+};
+
+
+exports.getToken = (headers) => {
+  if (headers && headers.authorization) {
+    const parted = headers.authorization.split(' ');
+    if (parted.length === 2) {
+      return parted[1];
+    }
+  }
+
+  return null;
 };

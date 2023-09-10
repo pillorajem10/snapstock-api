@@ -6,6 +6,8 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 const secretKey = 'your-secret-key';
 
+const { sendError, sendSuccess, getToken, sendErrorUnauthorized } = require ('../utils/methods');
+
 // Register a new user
 router.post('/register', (req, res) => {
   const newUser = new User(req.body);
@@ -20,24 +22,31 @@ router.post('/login', (req, res) => {
   const { username, password } = req.body;
 
   User.findOne({ username }, (err, user) => {
-    if (err) return res.status(500).json({ message: 'Server error' });
+    console.log('req bodyyyyyyyyyyyyyyy', req.body)
+    if (err) {
+      sendError(res, {}, 'Failed to store refreshments.');
+      console.log("ERRRRRRRRRRRRRRORRRRR 1", err)
+    }
 
     if (!user) {
-      return res.status(401).json({ message: 'Authentication failed. User not found.' });
+      return sendErrorUnauthorized(res, "", "User not found.")
     }
 
     user.comparePassword(password, (err, isMatch) => {
-      if (err) return res.status(500).json({ message: 'Server error' });
+      if (err) {
+        sendError(res, {}, 'SERVER ERRRORRRR.');
+        console.log("ERRRRRRRRRRRRRRORRRRR 2", err)
+      }
 
       if (!isMatch) {
-        return res.status(401).json({ message: 'Authentication failed. Wrong password.' });
+        return sendErrorUnauthorized(res, "", "Wrong password.")
       }
 
       const token = jwt.sign({ id: user._id }, secretKey, {
         expiresIn: '24h',
       });
 
-      res.json({ message: 'Authentication successful', token });
+      return sendSuccess(res, { token });
     });
   });
 });

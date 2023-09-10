@@ -1,7 +1,7 @@
 const Delivery = require('../models/Delivery.js');
 const Product = require('../models/Product.js');
 
-const { sendError, sendSuccess, convertMomentWithFormat } = require ('../utils/methods');
+const { sendError, sendSuccess, convertMomentWithFormat, getToken, sendErrorUnauthorized } = require ('../utils/methods');
 
 //LIST ALL PRODUCTS
 exports.list = (req, res, next) => {
@@ -65,6 +65,7 @@ exports.list = (req, res, next) => {
 
 //CREATE PRODUCT
 exports.add = (req, res, next) => {
+  console.log("ADDING PRODDUCTSSSSSSSSSSSSSSSSSS");
   Delivery.create(req.body, function (err, delivery) {
     if (err) {
       return sendError(res, err, 'Add delivery failed')
