@@ -29,7 +29,7 @@ router.post('/login', (req, res) => {
     }
 
     if (!user) {
-      return sendErrorUnauthorized(res, "", "User not found.")
+      return sendError(res, "", "User not found.")
     }
 
     user.comparePassword(password, (err, isMatch) => {
@@ -39,7 +39,7 @@ router.post('/login', (req, res) => {
       }
 
       if (!isMatch) {
-        return sendErrorUnauthorized(res, "", "Wrong password.")
+        return sendError(res, "", "Wrong password.")
       }
 
       const token = jwt.sign({ id: user._id }, secretKey, {
