@@ -1,6 +1,6 @@
 // controllers/userController.js
 const User = require('../models/User.js');
-const { sendError, sendSuccess, getToken, sendErrorUnauthorized } = require ('../utils/methods');
+const { sendError, sendSuccess, getToken, sendErrorUnauthorized, decodeToken } = require ('../utils/methods');
 
 // Get all users
 exports.list = (req, res) => {
@@ -52,26 +52,36 @@ exports.list = (req, res) => {
 exports.add = (req, res) => {
   let token = getToken(req.headers);
   if (token) {
-    User.create(req.body, function (err, usr) {
-      if (err) {
-        return sendError(res, err, 'Add User failed')
-      } else {
-        return sendSuccess(res, usr)
-      }
-    });
+    const user = decodeToken(token);
+    if (user && user.user.role === 1) {
+      User.create(req.body, function (err, user) {
+        if (err) {
+          console.log('ERRRRRRRRRRRR', err)
+          return sendError(res, err, 'Add User failed');
+        } else {
+          return sendSuccess(res, user);
+        }
+      });
+    } else {
+      return sendErrorUnauthorized(res, "", "You are not authorized to create a new user.");
+    }
   } else {
-    return sendErrorUnauthorized(res, "", "Please login first.")
+    return sendErrorUnauthorized(res, "", "Please login first.");
   }
 };
+
 
 
 // Get a user by ID
 exports.getById = (req, res) => {
   let token = getToken(req.headers);
   if (token) {
-    User.findById(req.params.id, (err, user) => {
-      if (err) return res.status(400).json({ message: 'Error fetching user' });
-      res.json(user);
+    User.findById(req.params.id, function (err, user) {
+      if (err || !user) {
+        return sendError(res, err, 'Cannot get user')
+      } else {
+        return sendSuccess(res, user)
+      }
     });
   } else {
     return sendErrorUnauthorized(res, "", "Please login first.")
@@ -82,12 +92,21 @@ exports.getById = (req, res) => {
 exports.updateById = (req, res) => {
   let token = getToken(req.headers);
   if (token) {
-    User.findByIdAndUpdate(req.params.id, req.body, { new: true }, (err, user) => {
-      if (err) return res.status(400).json({ message: 'Error updating user' });
-      res.json(user);
-    });
+    const user = decodeToken(token);
+    if (user && user.user.role === 1) {
+      User.findByIdAndUpdate(req.params.id, req.body, { new: true }, (err, user) => {
+        console.log('UPDATEEEEEEEEEEEE USER PAYLOADDD', user)
+        if (err || !user) {
+          return sendError(res, err, 'Cannot update user')
+        } else {
+          return sendSuccess(res, user)
+        }
+      });
+    } else {
+      return sendErrorUnauthorized(res, "", "You are not authorized to update a new user.");
+    }
   } else {
-    return sendErrorUnauthorized(res, "", "Please login first.")
+    return sendErrorUnauthorized(res, "", "Please login first.");
   }
 };
 
@@ -95,11 +114,19 @@ exports.updateById = (req, res) => {
 exports.deleteById = (req, res) => {
   let token = getToken(req.headers);
   if (token) {
-    User.findByIdAndRemove(req.params.id, (err) => {
-      if (err) return res.status(400).json({ message: 'Error deleting user' });
-      res.json({ message: 'User deleted successfully' });
-    });
+    const user = decodeToken(token);
+    if (user && user.user.role === 1) {
+      User.findByIdAndRemove(req.params.id, (err) => {
+        if (err || !user) {
+          return sendError(res, err, 'Cannot delete user')
+        } else {
+          return sendSuccess(res, user)
+        }
+      });
+    } else {
+      return sendErrorUnauthorized(res, "", "You are not authorized to delete a new user.");
+    }
   } else {
-    return sendErrorUnauthorized(res, "", "Please login first.")
+    return sendErrorUnauthorized(res, "", "Please login first.");
   }
 };

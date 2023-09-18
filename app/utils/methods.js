@@ -1,5 +1,8 @@
 const moment = require ('moment')
 const authors = ['@baje'];
+const jwt = require('jsonwebtoken');
+
+const secretKey = 'your-secret-key';
 
 const randomAuthor = () => {
   const l = authors[Math.floor(Math.random() * authors.length)];
@@ -58,3 +61,12 @@ exports.getToken = (headers) => {
 
   return null;
 };
+
+exports.decodeToken = (token) => {
+  if (token) {
+    const decoded = jwt.verify(token, secretKey);
+    return decoded;
+  }
+
+  return null;
+}

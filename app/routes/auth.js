@@ -42,10 +42,11 @@ router.post('/login', (req, res) => {
         return sendError(res, "", "Wrong password.")
       }
 
-      const token = jwt.sign({ id: user._id }, secretKey, {
+      const token = jwt.sign({ user }, secretKey, {
         expiresIn: '24h',
       });
 
+      console.log('USERRRRRRRRRRR', user);
       return sendSuccess(res, { token });
     });
   });
