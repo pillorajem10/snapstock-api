@@ -50,6 +50,7 @@ exports.list = (req, res) => {
 
 // Create a new user
 exports.add = (req, res) => {
+  /*
   let token = getToken(req.headers);
   if (token) {
     const user = decodeToken(token);
@@ -67,7 +68,16 @@ exports.add = (req, res) => {
     }
   } else {
     return sendErrorUnauthorized(res, "", "Please login first.");
-  }
+  }*/
+
+  User.create(req.body, function (err, user) {
+    if (err) {
+      console.log('ERRRRRRRRRRRR', err)
+      return sendError(res, err, 'Add User failed');
+    } else {
+      return sendSuccess(res, user);
+    }
+  });
 };
 
 
