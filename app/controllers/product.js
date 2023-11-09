@@ -1,4 +1,6 @@
 const Product = require('../models/Product.js');
+const mongoose = require('mongoose');
+
 
 const { sendError, sendSuccess, getToken, sendErrorUnauthorized } = require ('../utils/methods');
 
@@ -7,7 +9,7 @@ const { sendError, sendSuccess, getToken, sendErrorUnauthorized } = require ('..
 exports.list = (req, res, next) => {
   let token = getToken(req.headers);
   if (token) {
-    const { pageIndex, pageSize, sort_by, sort_direction, name } = req.query;
+    const { pageIndex, pageSize, sort_by, sort_direction, name, category } = req.query;
 
     console.log("REQ QUERYY", req.query);
 
@@ -28,9 +30,14 @@ exports.list = (req, res, next) => {
       };
     }
 
+    let categIds = req.query.category && req.query.category.split(',').map(function(categ) {
+      return mongoose.Types.ObjectId(categ);
+    });
+
     const productFieldsFilter = {
       stock: req.query.minimumPrice,
       name: name ? { $regex: name, $options: 'i' } : undefined,
+      category: req.query.category ? { $in: categIds } : undefined,
     };
 
 

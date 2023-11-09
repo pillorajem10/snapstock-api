@@ -24,6 +24,7 @@ const order = require('./app/routes/order');
 const delivery = require('./app/routes/delivery');
 const user = require('./app/routes/user');
 const auth = require('./app/routes/auth');
+const category = require('./app/routes/category');
 
 
 
@@ -50,6 +51,7 @@ app.use('/order', order);
 app.use('/delivery', delivery);
 app.use('/user', user);
 app.use('/auth', auth);
+app.use('/category', category);
 
 
 

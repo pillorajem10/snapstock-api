@@ -9,6 +9,7 @@ let ProductSchema = new mongoose.Schema(
     name: { type: String, default: '' },
     price: { type: Number, default: 0 },
     stocks: { type: Number, default: 0 },
+    category: { type: Schema.ObjectId, ref: 'Category' },
   },
   { timestamps: true }
 );

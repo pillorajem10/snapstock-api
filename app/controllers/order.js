@@ -31,11 +31,16 @@ exports.list = (req, res, next) => {
         };
       }
 
+      let categIds = req.query.category && req.query.category.split(',').map(function(categ) {
+        return mongoose.Types.ObjectId(categ);
+      });
+
       const orderFieldsFilter = {
         stock: req.query.minimumStock && req.query.maximumStock ? { $gte: +req.query.minimumStock, $lte: +req.query.maximumStock } : undefined,
         monthOrdered: req.query.monthOrdered ? +req.query.monthOrdered : undefined,
         dateOrdered: req.query.dateOrdered ? +req.query.dateOrdered : undefined,
         yearOrdered: req.query.yearOrdered ? +req.query.yearOrdered : undefined,
+        category: req.query.category ? { $in: categIds } : undefined,
         // $text: req.query.customerName ? { $search: req.query.customerName } : undefined,
       };
 

@@ -2,6 +2,7 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcrypt');
 const aggregatePaginate = require("mongoose-aggregate-paginate-v2");
+const Schema = mongoose.Schema;
 
 const UserSchema = new mongoose.Schema({
   username: {
@@ -9,10 +10,17 @@ const UserSchema = new mongoose.Schema({
     unique: true,
     required: true,
   },
-  role: { type: Number, default: 0 },
+  role: {
+    type: Number,
+    default: 0
+  },
   password: {
     type: String,
     required: true,
+  },
+  category: {
+    type: Schema.ObjectId,
+    ref: 'Category'
   },
 }, { timestamps: true });
 

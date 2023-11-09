@@ -1,5 +1,7 @@
 // controllers/userController.js
 const User = require('../models/User.js');
+const Category = require('../models/Category.js');
+
 const { sendError, sendSuccess, getToken, sendErrorUnauthorized, decodeToken } = require ('../utils/methods');
 
 // Get all users
@@ -50,34 +52,40 @@ exports.list = (req, res) => {
 
 // Create a new user
 exports.add = (req, res) => {
-  /*
-  let token = getToken(req.headers);
-  if (token) {
-    const user = decodeToken(token);
-    if (user && user.user.role === 1) {
-      User.create(req.body, function (err, user) {
+  let username = req.body.username;
+  let password = req.body.password;
+  let repassword = req.body.repassword;
+
+  if (username && password && repassword) {
+    if (password === repassword) {
+      /* IN THIS SECTION ONCE YOU SUBMITED THE REQUEST THE CATEGORY FROM THE REQ.BODY WILL CREATE THE
+       CATEGORY FIRST ON THE DATABASE */
+
+      req.body.name = req.body.category;
+      Category.create(req.body, function (err, cat) {
+        console.log('CATEGORY NAMEEEEEEEEE', req.body)
         if (err) {
-          console.log('ERRRRRRRRRRRR', err)
-          return sendError(res, err, 'Add User failed');
+          console.log('ERROR SA ADD CATEGORY', err);
+          return sendError(res, err, 'Add category failed')
         } else {
-          return sendSuccess(res, user);
+          /* ONCE THE CATEGORY ON THE DATABASE WAS CREATE THE OBJECT ID FROM THE RESPONSE WILL BE THE CATEGORY ON THE USER */
+          req.body.category = cat._id.toString();
+          User.create(req.body, function (err, user) {
+            if (err) {
+              console.log('ERROR SA ADD USER', err);
+              return sendError(res, err, 'Add User failed');
+            } else {
+              return sendSuccess(res, user);
+            }
+          });
         }
       });
     } else {
-      return sendErrorUnauthorized(res, "", "You are not authorized to create a new user.");
+      return sendError(res, '', 'Password did not matched.');
     }
   } else {
-    return sendErrorUnauthorized(res, "", "Please login first.");
-  }*/
-
-  User.create(req.body, function (err, user) {
-    if (err) {
-      console.log('ERRRRRRRRRRRR', err)
-      return sendError(res, err, 'Add User failed');
-    } else {
-      return sendSuccess(res, user);
-    }
-  });
+    return sendError(res, '', 'Please fill up the required fields.');
+  }
 };
 
 

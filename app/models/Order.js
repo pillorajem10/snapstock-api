@@ -14,6 +14,7 @@ let OrderSchema = new mongoose.Schema(
     dateOrdered: { type: Number, default: 0 },
     yearOrdered: { type: Number, default: 0 },
     credit: { type: String, default: '' },
+    category: { type: ObjectId, ref: 'Category' },
   },
   { timestamps: true }
 );
