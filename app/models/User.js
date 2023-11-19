@@ -5,6 +5,19 @@ const aggregatePaginate = require("mongoose-aggregate-paginate-v2");
 const Schema = mongoose.Schema;
 
 const UserSchema = new mongoose.Schema({
+  email: {
+    type: String,
+    required: true,
+    unique: true
+  },
+  fname: {
+    type: String,
+    required: true,
+  },
+  lname: {
+    type: String,
+    required: true,
+  },
   username: {
     type: String,
     unique: true,
@@ -13,6 +26,13 @@ const UserSchema = new mongoose.Schema({
   role: {
     type: Number,
     default: 0
+  },
+  verified: {
+    type: Boolean,
+    default: false
+  },
+  verificationToken: {
+    type: String,
   },
   password: {
     type: String,

@@ -22,24 +22,29 @@ router.post('/login', (req, res) => {
   const { username, password } = req.body;
 
   User.findOne({ username }, (err, user) => {
-    console.log('req bodyyyyyyyyyyyyyyy', req.body)
     if (err) {
       sendError(res, {}, 'Failed to store refreshments.');
-      console.log("ERRRRRRRRRRRRRRORRRRR 1", err)
+      console.log("ERRRRRRRRRRRRRRORRRRR 1", err);
+      return;
     }
 
     if (!user) {
-      return sendError(res, "", "User not found.")
+      return sendError(res, "", "User not found.");
+    }
+
+    if (!user.verified) {
+      return sendError(res, "", "Account not verified. Please check your email and verify the account first.");
     }
 
     user.comparePassword(password, (err, isMatch) => {
       if (err) {
         sendError(res, {}, 'SERVER ERRRORRRR.');
-        console.log("ERRRRRRRRRRRRRRORRRRR 2", err)
+        console.log("ERRRRRRRRRRRRRRORRRRR 2", err);
+        return;
       }
 
       if (!isMatch) {
-        return sendError(res, "", "Wrong password.")
+        return sendError(res, "", "Wrong password.");
       }
 
       const token = jwt.sign({ user }, secretKey, {

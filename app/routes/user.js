@@ -7,6 +7,7 @@ const {
   getById,
   updateById,
   deleteById,
+  verifyUser
 } = require('../controllers/user.js');
 
 // CRUD operations
@@ -15,5 +16,6 @@ router.get('/', list);
 router.get('/:id', getById);
 router.put('/:id', updateById);
 router.delete('/:id', deleteById);
+router.get('/verify/:token', verifyUser);
 
 module.exports = router;
