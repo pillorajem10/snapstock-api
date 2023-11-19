@@ -112,7 +112,7 @@ exports.add = (req, res) => {
                   return sendError(res, err, 'User with this email already exists');
                 }
 
-                const user = new User({ email, password, username, fname, lname });
+                const user = new User(req.body);
                 user.save().then(() => {
                   // Send verification email
                   sendVerificationEmail(user)
