@@ -1,6 +1,7 @@
 // controllers/userController.js
 const User = require('../models/User.js');
 const Category = require('../models/Category.js');
+const mongoose = require('mongoose');
 
 const { sendError, sendSuccess, getToken, sendErrorUnauthorized, decodeToken } = require ('../utils/methods');
 const nodemailer = require('nodemailer');
@@ -21,9 +22,14 @@ exports.list = (req, res) => {
     limit
   };
 
+  let categIds = req.query.category && req.query.category.split(',').map(function(categ) {
+    return mongoose.Types.ObjectId(categ);
+  });
+
 
   const userFieldsFilter = {
     username: username ? { $regex: username, $options: 'i' } : undefined,
+    category: req.query.category ? { $in: categIds } : undefined,
   };
 
 
@@ -67,7 +73,7 @@ const sendVerificationEmail = async (user) => {
     service: 'gmail',
     auth: {
       user: 'snapstockinventorychecker@gmail.com',
-      pass: 'taps tdvk oilr iyyt',
+      pass: 'tvuw hhos jsvj celm',
     },
     tls: {
       rejectUnauthorized: false,
@@ -75,22 +81,140 @@ const sendVerificationEmail = async (user) => {
   });
 
   const mailOptions = {
-    from: 'snapstockinventorychecker@gmail.com',
+    from: 'SnapStock <snapstockinventorychecker@gmail.com>',
     to: user.email,
     subject: 'Account Verification',
-    text: `Click the following link to verify your account: http://localhost:3000/verify/${token}`,
+    html: `<html>
+            <head>
+              <style>
+                body {
+                  font-family: Arial, sans-serif;
+                  margin: 20px;
+                  padding: 20px;
+                  background-color: #f4f4f4;
+                  color: #333;
+                }
+                h1 {
+                  color: #007bff;
+                }
+                p {
+                  line-height: 1.6;
+                }
+                a {
+                  color: #007bff;
+                  text-decoration: none;
+                }
+                a:hover {
+                  text-decoration: underline;
+                }
+              </style>
+            </head>
+            <body>
+              <h1>Welcome to Snap Stock Inventory Checker!</h1>
+              <p>Dear ${user.fname},</p>
+              <p>Thank you for registering with Snap Stock Inventory Checker! We are delighted to have you as a new member of our community.</p>
+              <p>Your account is already added to our sytem. But before logging in, please verify your account by clicking the following link:</p>
+              <p><a href="http://localhost:3000/verify/${token}">Verify Your Account</a></p>
+              <p>Once you've clicked the link to verify your account, you'll be routed to   the login page and you'll be able to login your account</p>
+              <p>If you have any questions or need assistance, feel free to reach out to our support team at snapstockinventorychecker@gmail.com.</p>
+              <p>We wish you a great experience with Snap Stock Inventory Checker!</p>
+              <p>Best regards,<br/>The Snap Stock Inventory Checker Team</p>
+            </body>
+          </html>`,
   };
 
-  await transporter.sendMail(mailOptions);
+  await transporter.sendMail(mailOptions, (error, info) => {
+    if (error) {
+        console.error('Error:', error);
+    } else {
+        console.log('Email sent: ' + info.response);
+    }
+});;
+};
+
+const sendVerificationEmailForEmployeeUser = async (emailNeeds) => {
+  console.log('EMAIL NEEEDSSSSS', emailNeeds);
+  const token = jwt.sign({ userId: emailNeeds.user._id }, 'your-secret-key', { expiresIn: '1w' });
+
+  emailNeeds.user.verificationToken = token;
+  await emailNeeds.user.save();
+
+  const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: 'snapstockinventorychecker@gmail.com',
+      pass: 'tvuw hhos jsvj celm',
+    },
+    tls: {
+      rejectUnauthorized: false,
+    },
+  });
+
+  const mailOptions = {
+    from: 'SnapStock <snapstockinventorychecker@gmail.com>',
+    to: emailNeeds.user.email,
+    subject: 'Account Verification',
+    html: `<html>
+            <head>
+              <style>
+                body {
+                  font-family: Arial, sans-serif;
+                  margin: 20px;
+                  padding: 20px;
+                  background-color: #f4f4f4;
+                  color: #333;
+                }
+                h1 {
+                  color: #007bff;
+                }
+                p {
+                  line-height: 1.6;
+                }
+                a {
+                  color: #007bff;
+                  text-decoration: none;
+                }
+                a:hover {
+                  text-decoration: underline;
+                }
+              </style>
+            </head>
+            <body>
+              <h1>Welcome to Snap Stock!</h1>
+              <p>Hello ${emailNeeds.user.fname},</p>
+              <p>Looks like you're now part of the Snap Stock community. We are thrilled to have you on board!</p>
+              <p>Your employee account is now active. Before you log in, please take a moment to verify your account by clicking the following link:</p>
+              <p><a href="http://localhost:3000/verify/${token}">Verify Your Account</a></p>
+              <p>Your initial password is: ${emailNeeds.password}. Make sure to complete the verification process before logging in for the first time.</p>
+              <p>Once you've clicked the link to verify your account, you'll be routed to   the login page and you'll be able to login your account</p>
+              <p>If you have any questions or need assistance, feel free to reach out to our support team at snapstockinventorychecker@gmail.com.</p>
+              <p>We wish you a great experience with Snap Stock Inventory Checker!</p>
+              <p>Best regards,<br/>The Snap Stock Inventory Checker Team</p>
+            </body>
+          </html>`,
+  };
+
+
+  await transporter.sendMail(mailOptions, (error, info) => {
+    if (error) {
+        console.error('Error:', error);
+    } else {
+        console.log('Email sent: ' + info.response);
+    }
+});;
 };
 
 
 exports.add = (req, res) => {
   let username = req.body.username;
+  let email = req.body.email;
+  let fname = req.body.fname;
+  let lname = req.body.lname;
   let password = req.body.password;
   let repassword = req.body.repassword;
+  let category = req.body.category;
 
-  if (username && password && repassword) {
+  if (username && password && repassword && email && fname && lname && category) {
     if (password === repassword) {
       /* IN THIS SECTION ONCE YOU SUBMITED THE REQUEST THE CATEGORY FROM THE REQ.BODY WILL CREATE THE
        CATEGORY FIRST ON THE DATABASE*/
@@ -136,6 +260,63 @@ exports.add = (req, res) => {
       });
     } else {
       return sendError(res, '', 'Password did not matched.');
+    }
+  } else {
+    return sendError(res, '', 'Please fill up the required fields.');
+  }
+};
+
+exports.addEmplooyeeUser = (req, res) => {
+  let username = req.body.username;
+  let category = req.body.category;
+  let email = req.body.email;
+  let fname = req.body.fname;
+  let lname = req.body.lname;
+
+  const generateRandomPassword = () => {
+    const min = 100000; // Minimum 6-digit number
+    const max = 999999; // Maximum 6-digit number
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+  };
+
+  if (username && email && fname && lname && category) {
+    try {
+      const { email, username, fname, lname } = req.body;
+
+      req.body.role = 0;
+      req.body.password = generateRandomPassword(); // Set a random 6-digit password
+
+      User.findOne({ email }).then(existingUser => {
+        if (existingUser) {
+          return sendError(res, 'User with this email already exists');
+        }
+
+        const user = new User(req.body);
+        let password = req.body.password;
+
+        const emailNeeds = {
+          user,
+          password
+        }
+
+        user.save().then(() => {
+          // Send verification email
+          sendVerificationEmailForEmployeeUser(emailNeeds)
+            .then(() => {
+              return sendSuccess(res, user);
+            })
+            .catch((error) => {
+              console.error('Error sending verification email:', error);
+              return res.status(500).json({ error: 'Internal server error' });
+            });
+        }).catch((error) => {
+          console.error('Error creating user:', error);
+          return res.status(500).json({ error: 'Internal server error' });
+        });
+      });
+    } catch (error) {
+      console.error('Error creating user:', error);
+      return res.status(500).json({ error: 'Internal server error' });
     }
   } else {
     return sendError(res, '', 'Please fill up the required fields.');
