@@ -434,18 +434,14 @@ exports.updateById = (req, res) => {
   let token = getToken(req.headers);
   if (token) {
     const user = decodeToken(token);
-    if (user && user.user.role === 1) {
-      User.findByIdAndUpdate(req.params.id, req.body, { new: true }, (err, user) => {
-        console.log('UPDATEEEEEEEEEEEE USER PAYLOADDD', user)
-        if (err || !user) {
-          return sendError(res, err, 'Cannot update user')
-        } else {
-          return sendSuccess(res, user)
-        }
-      });
-    } else {
-      return sendErrorUnauthorized(res, "", "You are not authorized to update a new user.");
-    }
+    User.findByIdAndUpdate(req.params.id, req.body, { new: true }, (err, user) => {
+      console.log('UPDATEEEEEEEEEEEE USER PAYLOADDD', user)
+      if (err || !user) {
+        return sendError(res, err, 'Cannot update user')
+      } else {
+        return sendSuccess(res, user)
+      }
+    });
   } else {
     return sendErrorUnauthorized(res, "", "Please login first.");
   }
