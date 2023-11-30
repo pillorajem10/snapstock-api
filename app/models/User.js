@@ -1,4 +1,3 @@
-// models/User.js
 const mongoose = require('mongoose');
 const bcrypt = require('bcrypt');
 const aggregatePaginate = require("mongoose-aggregate-paginate-v2");
@@ -66,6 +65,24 @@ UserSchema.methods.comparePassword = function (candidatePassword, callback) {
     callback(null, isMatch);
   });
 };
+
+UserSchema.pre('findOneAndUpdate', function (next) {
+  const update = this._update;
+
+  if (update.password) {
+    bcrypt.genSalt(10, (err, salt) => {
+      if (err) return next(err);
+
+      bcrypt.hash(update.password, salt, (err, hash) => {
+        if (err) return next(err);
+        this._update.$set.password = hash;
+        next();
+      });
+    });
+  } else {
+    next();
+  }
+});
 
 UserSchema.plugin(aggregatePaginate);
 

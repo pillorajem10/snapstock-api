@@ -120,18 +120,28 @@ exports.getById = (req, res, next) => {
 exports.updateById = (req, res, next) => {
   let token = getToken(req.headers);
   if (token) {
-    Category.findByIdAndUpdate(req.params.id, req.body, { new: true }, function (err, cat) {
-      if (err || !cat) {
-        return sendError(res, err, 'Cannot update category')
-      } else {
-        console.log("REQ BODYYYYYYYYYYYYYY", req.body)
-        return sendSuccess(res, cat)
+
+    const capitalizeFirstLetter = (str) => str.charAt(0).toUpperCase() + str.slice(1);
+    const capitalizedName = capitalizeFirstLetter(req.body.name);
+
+    Category.findByIdAndUpdate(
+      req.params.id,
+      { ...req.body, name: capitalizedName },
+      { new: true },
+      function (err, updatedCategory) {
+        if (err || !updatedCategory) {
+          return sendError(res, err, 'Cannot update category');
+        } else {
+          console.log("REQ BODYYYYYYYYYYYYYY", req.body);
+          return sendSuccess(res, updatedCategory);
+        }
       }
-    });
+    );
   } else {
-    return sendErrorUnauthorized(res, "", "Please login first.")
+    return sendErrorUnauthorized(res, "", "Please login first.");
   }
-}
+};
+
 
 
 

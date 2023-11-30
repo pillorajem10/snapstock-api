@@ -7,6 +7,7 @@ const { sendError, sendSuccess, getToken, sendErrorUnauthorized, decodeToken } =
 const nodemailer = require('nodemailer');
 const smtpTransport = require('nodemailer-smtp-transport');
 const jwt = require('jsonwebtoken');
+const bcrypt = require('bcrypt');
 
 // Get all users
 exports.list = (req, res) => {
@@ -219,12 +220,15 @@ exports.add = (req, res) => {
       /* IN THIS SECTION ONCE YOU SUBMITED THE REQUEST THE CATEGORY FROM THE REQ.BODY WILL CREATE THE
        CATEGORY FIRST ON THE DATABASE*/
 
-      req.body.name = req.body.category;
+      const capitalizeFirstLetter = (str) => str.charAt(0).toUpperCase() + str.slice(1);
+      const capitalizedFname = capitalizeFirstLetter(req.body.category);
+      req.body.name = capitalizedFname;
       Category.create(req.body, function (err, cat) {
+        const capitalizedFname = capitalizeFirstLetter(req.body.name);
         console.log('CATEGORY NAMEEEEEEEEE', req.body)
         if (err) {
           console.log('ERROR SA ADD CATEGORY', err);
-          return sendError(res, err, 'Add category failed')
+          sendError(res, err, 'Add category failed', 400, 101, 'Category');
         } else {
           /* ONCE THE CATEGORY ON THE DATABASE WAS CREATE THE OBJECT ID FROM THE RESPONSE WILL BE THE CATEGORY ON THE USER*/
           req.body.category = cat._id.toString();
@@ -236,7 +240,16 @@ exports.add = (req, res) => {
                   return sendError(res, err, 'User with this email already exists');
                 }
 
-                const user = new User(req.body);
+                // Capitalize the first letter of fname and lname
+                const capitalizedFname = capitalizeFirstLetter(req.body.fname);
+                const capitalizedLname = capitalizeFirstLetter(req.body.lname);
+
+                const user = new User({
+                  ...req.body,
+                  fname: capitalizedFname,
+                  lname: capitalizedLname,
+                });
+
                 user.save().then(() => {
                   // Send verification email
                   sendVerificationEmail(user)
@@ -245,16 +258,16 @@ exports.add = (req, res) => {
                     })
                     .catch((error) => {
                       console.error('Error sending verification email:', error);
-                      return res.status(500).json({ error: 'Internal server error' });
+                      sendError(res, error, 'Add user failed', 400, 101, 'User');
                     });
                 }).catch((error) => {
                   console.error('Error creating user:', error);
-                  return res.status(500).json({ error: 'Internal server error' });
+                  sendError(res, error, 'Add user failed', 400, 101, 'User');
                 });
               });
             } catch (error) {
               console.error('Error creating user:', error);
-              return res.status(500).json({ error: 'Internal server error' });
+              sendError(res, error, 'Add user failed', 400, 101, 'User');
             }
         }
       });
@@ -291,7 +304,17 @@ exports.addEmplooyeeUser = (req, res) => {
           return sendError(res, 'User with this email already exists');
         }
 
-        const user = new User(req.body);
+        const capitalizeFirstLetter = (str) => str.charAt(0).toUpperCase() + str.slice(1);
+
+        const capitalizedFname = capitalizeFirstLetter(req.body.fname);
+        const capitalizedLname = capitalizeFirstLetter(req.body.lname);
+
+        const user = new User({
+          ...req.body,
+          fname: capitalizedFname,
+          lname: capitalizedLname,
+        });
+
         let password = req.body.password;
 
         const emailNeeds = {
@@ -434,18 +457,64 @@ exports.updateById = (req, res) => {
   let token = getToken(req.headers);
   if (token) {
     const user = decodeToken(token);
-    User.findByIdAndUpdate(req.params.id, req.body, { new: true }, (err, user) => {
-      console.log('UPDATEEEEEEEEEEEE USER PAYLOADDD', user)
-      if (err || !user) {
-        return sendError(res, err, 'Cannot update user')
-      } else {
-        return sendSuccess(res, user)
-      }
-    });
+
+    // Check if password and retype password match
+    if (req.body.password !== req.body.repassword) {
+      return sendError(res, null, "Password and retype password do not match");
+    }
+
+    const capitalizeFirstLetter = (str) => str.charAt(0).toUpperCase() + str.slice(1);
+    const capitalizedFname = capitalizeFirstLetter(req.body.fname);
+    const capitalizedLname = capitalizeFirstLetter(req.body.lname);
+
+    // If the request includes a new password, hash it before updating
+    if (req.body.password) {
+      bcrypt.genSalt(10, (err, salt) => {
+        if (err) {
+          return sendError(res, err, "Error generating salt for password update");
+        }
+
+        bcrypt.hash(req.body.password, salt, (err, hash) => {
+          if (err) {
+            return sendError(res, err, "Error hashing password for update");
+          }
+
+          // Update the user with the hashed password
+          User.findByIdAndUpdate(
+            req.params.id,
+            { ...req.body, fname: capitalizedFname, lname: capitalizedLname, password: hash },
+            { new: true },
+            (err, updatedUser) => {
+              if (err || !updatedUser) {
+                return sendError(res, err, 'Cannot update user');
+              } else {
+                return sendSuccess(res, updatedUser);
+              }
+            }
+          );
+        });
+      });
+    } else {
+      // If no password is provided, update other user details without updating the password
+      User.findByIdAndUpdate(
+        req.params.id,
+        { ...req.body, fname: capitalizedFname, lname: capitalizedLname },
+        { new: true },
+        (err, updatedUser) => {
+          if (err || !updatedUser) {
+            return sendError(res, err, 'Cannot update user');
+          } else {
+            return sendSuccess(res, updatedUser);
+          }
+        }
+      );
+    }
   } else {
     return sendErrorUnauthorized(res, "", "Please login first.");
   }
 };
+
+
 
 // Delete a user by ID
 exports.deleteById = (req, res) => {

@@ -17,16 +17,35 @@ exports.convertMomentWithFormat = (v) => {
   return moment(v).format('MM/DD/YYYY');
 };
 
-exports.sendError = (v, data, msg = '', errNo = 400, code = 101) => {
+exports.sendError = (v, data, msg = '', errNo = 400, code = 101, collection = '') => {
+  console.log('COLLECTION', collection);
+  let errorMessage = msg;
+
+  // Check if MongoDB unique constraint violation (code 11000) occurred
+  if (data && data.code === 11000) {
+    const duplicateFieldMatch = data.errmsg.match(/index: (.+?)_1 dup key/);
+
+    if (duplicateFieldMatch && duplicateFieldMatch[1]) {
+      errorMessage = `${collection} with this ${duplicateFieldMatch[1]} already exists`;
+      collection = duplicateFieldMatch[1]; // Set the collection name dynamically
+    } else {
+      errorMessage = 'Existing field already exists';
+    }
+  }
+
   return v.status(errNo).json({
     author: randomAuthor(),
-    msg,
+    msg: errorMessage,
     data,
     success: false,
     version: '0.0.1',
-    code
+    code,
+    collection, // Include the collection name in the response
   });
 };
+
+
+
 
 exports.sendErrorUnauthorized = (v, data, msg = '', errNo = 401, code = 101) => {
   return v.status(errNo).json({

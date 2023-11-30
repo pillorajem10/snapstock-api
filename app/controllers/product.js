@@ -75,17 +75,22 @@ exports.list = (req, res, next) => {
 exports.add = (req, res, next) => {
   let token = getToken(req.headers);
   if (token) {
-    Product.create(req.body, function (err, prod) {
+    // Capitalize the first letter of the "name" field in the request body
+    const capitalizeFirstLetter = (str) => str.charAt(0).toUpperCase() + str.slice(1);
+    const capitalizedName = capitalizeFirstLetter(req.body.name);
+
+    Product.create({ ...req.body, name: capitalizedName }, function (err, product) {
       if (err) {
-        return sendError(res, err, 'Add product failed')
+        return sendError(res, err, 'Add product failed');
       } else {
-        return sendSuccess(res, prod)
+        return sendSuccess(res, product);
       }
     });
   } else {
-    return sendErrorUnauthorized(res, "", "Please login first.")
+    return sendErrorUnauthorized(res, "", "Please login first.");
   }
-}
+};
+
 
 
 
@@ -117,18 +122,28 @@ exports.getById = (req, res, next) => {
 exports.updateById = (req, res, next) => {
   let token = getToken(req.headers);
   if (token) {
-    Product.findByIdAndUpdate(req.params.id, req.body, { new: true }, function (err, prod) {
-      if (err || !prod) {
-        return sendError(res, err, 'Cannot update product')
-      } else {
-        console.log("REQ BODYYYYYYYYYYYYYY", req.body)
-        return sendSuccess(res, prod)
+    // Capitalize the first letter of the "name" field in the request body
+    const capitalizeFirstLetter = (str) => str.charAt(0).toUpperCase() + str.slice(1);
+    const capitalizedName = capitalizeFirstLetter(req.body.name);
+
+    Product.findByIdAndUpdate(
+      req.params.id,
+      { ...req.body, name: capitalizedName },
+      { new: true },
+      function (err, updatedProduct) {
+        if (err || !updatedProduct) {
+          return sendError(res, err, 'Cannot update product');
+        } else {
+          console.log("REQ BODYYYYYYYYYYYYYY", req.body);
+          return sendSuccess(res, updatedProduct);
+        }
       }
-    });
+    );
   } else {
-    return sendErrorUnauthorized(res, "", "Please login first.")
+    return sendErrorUnauthorized(res, "", "Please login first.");
   }
-}
+};
+
 
 
 
