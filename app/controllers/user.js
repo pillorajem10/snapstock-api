@@ -130,7 +130,71 @@ const sendVerificationEmail = async (user) => {
     } else {
         console.log('Email sent: ' + info.response);
     }
-});;
+  });;
+};
+
+const sendResetPasswordEmail = async (user, token) => {
+  const resetPasswordLink = `http://localhost:3000/changepassword/${token}`;
+  const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: 'snapstockinventorychecker@gmail.com',
+      pass: 'tvuw hhos jsvj celm',
+    },
+    tls: {
+      rejectUnauthorized: false,
+    },
+  });
+
+  const mailOptions = {
+    from: 'SnapStock <snapstockinventorychecker@gmail.com>',
+    to: user.email,
+    subject: 'Password Reset Request',
+    html: `<html>
+            <head>
+              <style>
+                body {
+                  font-family: Arial, sans-serif;
+                  margin: 20px;
+                  padding: 20px;
+                  background-color: #f4f4f4;
+                  color: #333;
+                }
+                h1 {
+                  color: #007bff;
+                }
+                p {
+                  line-height: 1.6;
+                }
+                a {
+                  color: #007bff;
+                  text-decoration: none;
+                }
+                a:hover {
+                  text-decoration: underline;
+                }
+              </style>
+            </head>
+            <body>
+              <h1>Snap Stock Password Reset</h1>
+              <p>Dear ${user.fname},</p>
+              <p>We received a request to reset your password for Snap Stock Inventory Checker. To proceed, please click the following link:</p>
+              <p><a href="${resetPasswordLink}">Reset Your Password</a></p>
+              <p>If you did not initiate this request, you can safely ignore this email. Your account security is important to us.</p>
+              <p>If you have any questions or need assistance, feel free to reach out to our support team at snapstockinventorychecker@gmail.com.</p>
+              <p>Best regards,<br/>The Snap Stock Inventory Checker Team</p>
+            </body>
+          </html>`,
+  };
+
+
+  await transporter.sendMail(mailOptions, (error, info) => {
+    if (error) {
+        console.error('Error:', error);
+    } else {
+        console.log('Email sent: ' + info.response);
+    }
+  });;
 };
 
 const sendVerificationEmailForEmployeeUser = async (emailNeeds) => {
@@ -468,7 +532,67 @@ exports.updateById = (req, res) => {
     const capitalizedLname = capitalizeFirstLetter(req.body.lname);
 
     // If the request includes a new password, hash it before updating
-    if (req.body.password) {
+    User.findByIdAndUpdate(
+      req.params.id,
+      { ...req.body, fname: capitalizedFname, lname: capitalizedLname },
+      { new: true },
+      (err, updatedUser) => {
+        if (err || !updatedUser) {
+          return sendError(res, err, 'Cannot update user');
+        } else {
+          return sendSuccess(res, updatedUser, 'User updated successfully.');
+        }
+      }
+    );
+  } else {
+    return sendErrorUnauthorized(res, "", "Please login first.");
+  }
+};
+
+
+// Update a user by ID
+// Controller function to request a new password
+exports.requestNewPassword = async (req, res) => {
+  const { email } = req.body;
+
+  try {
+    // Find user by email
+    const user = await User.findById(req.params.id);
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Generate a reset token and save it to the user document
+    const token = jwt.sign({ userId: user._id }, 'your-secret-key', { expiresIn: '1h' });
+
+    user.verificationToken = token;
+    await user.save();
+
+    // Send an email with the reset password link
+    sendResetPasswordEmail(user, token);
+
+    return sendSuccess(res, user, 'Request for new password already sent through your email');
+  } catch (error) {
+    console.error('Error requesting new password:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+
+// ... (previous code)
+
+
+
+exports.changePassword = async (req, res) => {
+  const { password, repassword } = req.body;
+
+  if (password === repassword) {
+    const token = req.params.token;
+
+    try {
+      // Verify the token
+      const decodedToken = jwt.verify(token, 'your-secret-key');
       bcrypt.genSalt(10, (err, salt) => {
         if (err) {
           return sendError(res, err, "Error generating salt for password update");
@@ -481,38 +605,36 @@ exports.updateById = (req, res) => {
 
           // Update the user with the hashed password
           User.findByIdAndUpdate(
-            req.params.id,
-            { ...req.body, fname: capitalizedFname, lname: capitalizedLname, password: hash },
+            decodedToken.userId,
+            { ...req.body, password: hash },
             { new: true },
             (err, updatedUser) => {
               if (err || !updatedUser) {
                 return sendError(res, err, 'Cannot update user');
               } else {
-                return sendSuccess(res, updatedUser);
+                return sendSuccess(res, updatedUser, 'Password changed successfully');
               }
             }
           );
         });
       });
-    } else {
-      // If no password is provided, update other user details without updating the password
-      User.findByIdAndUpdate(
-        req.params.id,
-        { ...req.body, fname: capitalizedFname, lname: capitalizedLname },
-        { new: true },
-        (err, updatedUser) => {
-          if (err || !updatedUser) {
-            return sendError(res, err, 'Cannot update user');
-          } else {
-            return sendSuccess(res, updatedUser);
-          }
-        }
-      );
+
+      // return res.status(200).json({ message: 'Password changed successfully' });
+    } catch (error) {
+      if (error.name === 'TokenExpiredError') {
+        return res.status(401).json({ error: 'Token expired' });
+      }
+
+      console.error('Error changing password:', error);
+      return res.status(500).json({ error: 'Internal server error' });
     }
   } else {
-    return sendErrorUnauthorized(res, "", "Please login first.");
+    return res.status(400).json({ error: 'Password and Re-type password did not match.' });
   }
 };
+
+
+
 
 
 
@@ -526,7 +648,7 @@ exports.deleteById = (req, res) => {
         if (err || !user) {
           return sendError(res, err, 'Cannot delete user')
         } else {
-          return sendSuccess(res, user)
+          return sendSuccess(res, user, 'User deleted successfully.')
         }
       });
     } else {
