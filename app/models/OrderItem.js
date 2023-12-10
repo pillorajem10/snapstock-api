@@ -9,7 +9,7 @@ let OrderItemSchema = new mongoose.Schema (
     orderId: { type: ObjectId, ref: "Order" },
     productId: { type: String, default: '' },
   	productName: { type: String, default: '' },
-    qty: { type: Number, default: 0 },  
+    qty: { type: Number, default: 0 },
     total: { type: Number, default: 0 },
     credit: { type: String, default: '' },
     category: { type: ObjectId, ref: 'Category' },

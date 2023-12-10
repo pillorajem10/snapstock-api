@@ -259,7 +259,7 @@ exports.addOrderItem = (req, res, next) => {
                 orderItem.save();
                 callbackOrder.save();
 
-                return sendSuccess(res, callbackOrder)
+                return sendSuccess(res, callbackOrder, 'Order item added successfully.')
               }
             }
           });
@@ -270,7 +270,285 @@ exports.addOrderItem = (req, res, next) => {
   } else {
     return sendErrorUnauthorized(res, "", "Please login first.")
   }
+};
+
+exports.getOrderItemById = (req, res, next) => {
+  console.log('Reached getOrderItemById route');
+  let token = getToken(req.headers);
+  if (token) {
+    OrderItem.findById(req.params.id, function (err, orderItem) {
+      if (err || !orderItem) {
+        console.log('ERR', err);
+        return sendError(res, err, 'Cannot get order item')
+      } else {
+        return sendSuccess(res, orderItem)
+      }
+    });
+  } else {
+    return sendErrorUnauthorized(res, "", "Please login first.")
+  }
+}
+
+exports.deleteOrderItem = (req, res, next) => {
+  let token = getToken(req.headers);
+  if (token) {
+    console.log('PARAMS', req.params);
+    Order.findById(req.params.orderId)
+      .populate('orderItem')
+      .exec((err, callbackOrder) => {
+        if (err || !callbackOrder) {
+          return sendError(res, err, 'Order not found.');
+        }
+
+        const orderItemId = req.params.orderItemId;
+        const orderItem = callbackOrder.orderItem.find((item) => item._id.equals(orderItemId));
+
+        if (!orderItem) {
+          return sendError(res, null, 'Order item not found.');
+        }
+
+        Product.findById(orderItem.productId, (err, product) => {
+          if (err || !product) {
+            return sendError(res, err, 'Cannot get product');
+          }
+
+          // Use findByIdAndDelete to delete the OrderItem and handle the callback
+          OrderItem.findByIdAndDelete(orderItemId, (err) => {
+            if (err) {
+              return sendError(res, err, 'Error deleting order item.');
+            }
+
+            // Update product stocks
+            product.stocks = product.stocks + orderItem.qty;
+            product.save();
+
+            // Update order total price
+            callbackOrder.totalPrice = callbackOrder.totalPrice - orderItem.total;
+
+            // Remove the order item from the array
+            callbackOrder.orderItem.pull(orderItemId);
+
+            // Save changes to the Order collection
+            callbackOrder.save((err) => {
+              if (err) {
+                return sendError(res, err, 'Error updating order.');
+              }
+
+              return sendSuccess(res, callbackOrder, 'Order Updated Completely');
+            });
+          });
+        });
+      });
+  } else {
+    return sendErrorUnauthorized(res, '', 'Please login first.');
+  }
+};
 
 
 
+/*exports.updateOrderItem = (req, res, next) => {
+  let token = getToken(req.headers);
+  if (token) {
+    const orderId = req.params.orderId;
+    const orderItemId = req.params.orderItemId;
+    const { productId, qty } = req.body;
+
+    Order.findById(orderId)
+      .populate('orderItem')
+      .exec((err, callbackOrder) => {
+        if (err || !callbackOrder) {
+          return sendError(res, err, 'Order not found.');
+        } else {
+          // Find the order item to be updated
+          const orderItem = callbackOrder.orderItem.find((item) => item._id.equals(orderItemId));
+
+          if (!orderItem) {
+            return sendError(res, null, 'Order item not found.');
+          }
+
+          // Retrieve the current product related to the order item
+          Product.findById(orderItem.productId, (err, currentProduct) => {
+            if (err || !currentProduct) {
+              return sendError(res, err, 'Cannot get current product');
+            } else {
+              // Calculate the difference in quantity
+              const qtyDifference = qty - orderItem.qty;
+
+              // Update stocks for the current product based on the quantity difference
+              currentProduct.stocks = currentProduct.stocks - qtyDifference;
+
+              // Check if there are enough stocks for the updated quantity
+              if (currentProduct.stocks < 0) {
+                return sendError(res, null, 'Not enough stocks for the updated quantity.');
+              }
+
+              // Update product ID and name in the order item
+              orderItem.productId = productId;
+              orderItem.productName = currentProduct.name;
+
+              // Update quantity in the order item
+              orderItem.qty = qty;
+
+              // Update total price in the order item
+              orderItem.total = currentProduct.price * qty;
+
+              // Update order total price
+              callbackOrder.totalPrice = callbackOrder.totalPrice + qtyDifference * currentProduct.price;
+
+              // Save changes to the database
+              Promise.all([currentProduct.save(), orderItem.save(), callbackOrder.save()])
+                .then(() => {
+                  return sendSuccess(res, callbackOrder, 'Order Item Updated Completely');
+                })
+                .catch((err) => {
+                  return sendError(res, err, 'Error updating order or product.');
+                });
+            }
+          });
+        }
+      });
+  } else {
+    return sendErrorUnauthorized(res, '', 'Please login first.');
+  }
+};*/
+
+exports.updateOrderItem = async (req, res, next) => {
+  try {
+    let token = getToken(req.headers);
+    if (!token) {
+      return sendErrorUnauthorized(res, '', 'Please login first.');
+    }
+
+    const orderId = req.params.orderId;
+    const orderItemId = req.params.orderItemId;
+    const { productId, qty } = req.body;
+
+    const callbackOrder = await Order.findById(orderId).populate('orderItem').exec();
+
+    if (!callbackOrder) {
+      return sendError(res, null, 'Order not found.');
+    }
+
+    const orderItem = callbackOrder.orderItem.find((item) => item._id.equals(orderItemId));
+
+    if (!orderItem) {
+      return sendError(res, null, 'Order item not found.');
+    }
+
+    const currentProduct = await Product.findById(orderItem.productId).exec();
+
+    if (!currentProduct) {
+      return sendError(res, null, 'Cannot get current product');
+    }
+
+    const qtyDifference = qty - orderItem.qty;
+
+    if (productId !== orderItem.productId) {
+      currentProduct.stocks += orderItem.qty;
+      await currentProduct.save();
+
+      const newProduct = await Product.findById(productId).exec();
+
+      if (!newProduct || newProduct.stocks < qty) {
+        return sendError(res, null, 'Not enough stocks for the new product.');
+      } else {
+        newProduct.stocks -= qty;
+        await newProduct.save();
+
+        orderItem.productId = productId;
+        orderItem.productName = newProduct.name;
+      }
+    } else {
+      currentProduct.stocks -= qtyDifference;
+      await currentProduct.save();
+    }
+
+    orderItem.qty = qty;
+    orderItem.total = currentProduct.price * qty;
+
+    callbackOrder.totalPrice += qtyDifference * currentProduct.price;
+
+    await Promise.all([orderItem.save(), callbackOrder.save()]);
+
+    return sendSuccess(res, callbackOrder, 'Order Item Updated Completely');
+  } catch (err) {
+    return sendError(res, err, 'Error updating order item or order.');
+  }
+};
+
+exports.updateOrderItem = async (req, res, next) => {
+  try {
+    const token = getToken(req.headers);
+
+    if (!token) {
+      return sendErrorUnauthorized(res, '', 'Please login first.');
+    }
+
+    const orderId = req.params.orderId;
+    const orderItemId = req.params.orderItemId;
+    const { productId, qty } = req.body;
+
+    const callbackOrder = await Order.findById(orderId).populate('orderItem').exec();
+
+    if (!callbackOrder) {
+      return sendError(res, null, 'Order not found.');
+    }
+
+    const orderItem = callbackOrder.orderItem.find((item) => item._id.equals(orderItemId));
+
+    if (!orderItem) {
+      return sendError(res, null, 'Order item not found.');
+    }
+
+    const currentProduct = await Product.findById(orderItem.productId).exec();
+
+    if (!currentProduct) {
+      return sendError(res, null, 'Cannot get the current product');
+    }
+
+    // Calculate the difference in quantity
+    const qtyDifference = qty - orderItem.qty;
+
+    // Check if the quantity is valid for the current product
+    if (qty > currentProduct.stocks + orderItem.qty || qty < 0) {
+      return sendError(res, null, 'Sorry but the stocks for this product is too low for your desired quantity.');
+    }
+
+    // Revert previous stock changes
+    currentProduct.stocks += orderItem.qty;
+    await currentProduct.save();
+
+    if (productId !== orderItem.productId) {
+      const newProduct = await Product.findById(productId).exec();
+
+      if (!newProduct || newProduct.stocks < qty) {
+        return sendError(res, null, 'Not enough stocks for the new product. Order can\'t be processed; the stocks for this product are too low.');
+      }
+
+      // Apply stock changes for the new product
+      newProduct.stocks -= qty;
+      await newProduct.save();
+
+      orderItem.productId = productId;
+      orderItem.productName = newProduct.name;
+    } else {
+      // Apply stock changes for the current product
+      currentProduct.stocks -= qty;
+      await currentProduct.save();
+    }
+
+    // Update order item details
+    orderItem.qty = qty;
+    orderItem.total = currentProduct.price * qty;
+
+    // Update total price in the order
+    callbackOrder.totalPrice += qtyDifference * currentProduct.price;
+
+    // Save changes
+    await Promise.all([orderItem.save(), callbackOrder.save()]);
+
+    return sendSuccess(res, callbackOrder, 'Order Item Updated Completely');
+  } catch (err) {
+    return sendError(res, err, 'Error updating order item or order.');
+  }
 };
