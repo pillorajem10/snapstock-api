@@ -189,9 +189,9 @@ exports.updateById = (req, res, next)=>{
     Order.findByIdAndUpdate(req.params.id, req.body, { new: true } ).populate('orderItem').exec((err, order) => {
       console.log("REQ BODYYYYYYYYYYYYYY", req.body)
       if(err || !order){
-        return sendSuccess(res, order)
+        return sendError(res, null, 'Unable to find order.')
       } else {
-        return sendSuccess(res, order)
+        return sendSuccess(res, order, 'Order update success.')
       }
     });
   } else {
@@ -203,20 +203,49 @@ exports.updateById = (req, res, next)=>{
 
 
 //DELETE BY ID
-exports.deleteById = (req, res, next) => {
-  let token = getToken(req.headers);
-  if (token) {
-    Order.findByIdAndRemove(req.params.id, req.body, function (err, order) {
-      if (err || !order) {
-        return sendError(res, {}, 'Cannot delete order');
-      } else {
-        return sendSuccess(res, order);
+exports.deleteById = async (req, res, next) => {
+  try {
+    const token = getToken(req.headers);
+
+    if (!token) {
+      return sendErrorUnauthorized(res, '', 'Please login first.');
+    }
+
+    const orderId = req.params.id;
+
+    // Retrieve the order and populate the 'orderItems' field
+    const order = await Order.findById(orderId).populate('orderItem').exec();
+
+    if (!order) {
+      return sendError(res, {}, 'Cannot find order for deletion.');
+    }
+
+    // Extract order item IDs
+    const orderItemIds = order.orderItem.map(item => item._id);
+
+    // Delete order and associated order items
+    await Promise.all([
+      Order.findByIdAndRemove(orderId).exec(),
+      OrderItem.deleteMany({ _id: { $in: orderItemIds } }).exec()
+    ]);
+
+    // Iterate through order items to update product stocks
+    for (const orderItem of order.orderItem) {
+      const product = await Product.findById(orderItem.productId).exec();
+
+      if (product) {
+        // Increase product stocks by the order item quantity
+        product.stocks += orderItem.qty;
+        await product.save();
       }
-    });
-  } else {
-    return sendErrorUnauthorized(res, "", "Please login first.")
+    }
+
+    return sendSuccess(res, {}, 'Order and associated items deleted successfully.');
+  } catch (err) {
+    return sendError(res, err, 'Error deleting order and associated items.');
   }
-}
+};
+
 
 
 
@@ -345,136 +374,6 @@ exports.deleteOrderItem = (req, res, next) => {
 };
 
 
-
-/*exports.updateOrderItem = (req, res, next) => {
-  let token = getToken(req.headers);
-  if (token) {
-    const orderId = req.params.orderId;
-    const orderItemId = req.params.orderItemId;
-    const { productId, qty } = req.body;
-
-    Order.findById(orderId)
-      .populate('orderItem')
-      .exec((err, callbackOrder) => {
-        if (err || !callbackOrder) {
-          return sendError(res, err, 'Order not found.');
-        } else {
-          // Find the order item to be updated
-          const orderItem = callbackOrder.orderItem.find((item) => item._id.equals(orderItemId));
-
-          if (!orderItem) {
-            return sendError(res, null, 'Order item not found.');
-          }
-
-          // Retrieve the current product related to the order item
-          Product.findById(orderItem.productId, (err, currentProduct) => {
-            if (err || !currentProduct) {
-              return sendError(res, err, 'Cannot get current product');
-            } else {
-              // Calculate the difference in quantity
-              const qtyDifference = qty - orderItem.qty;
-
-              // Update stocks for the current product based on the quantity difference
-              currentProduct.stocks = currentProduct.stocks - qtyDifference;
-
-              // Check if there are enough stocks for the updated quantity
-              if (currentProduct.stocks < 0) {
-                return sendError(res, null, 'Not enough stocks for the updated quantity.');
-              }
-
-              // Update product ID and name in the order item
-              orderItem.productId = productId;
-              orderItem.productName = currentProduct.name;
-
-              // Update quantity in the order item
-              orderItem.qty = qty;
-
-              // Update total price in the order item
-              orderItem.total = currentProduct.price * qty;
-
-              // Update order total price
-              callbackOrder.totalPrice = callbackOrder.totalPrice + qtyDifference * currentProduct.price;
-
-              // Save changes to the database
-              Promise.all([currentProduct.save(), orderItem.save(), callbackOrder.save()])
-                .then(() => {
-                  return sendSuccess(res, callbackOrder, 'Order Item Updated Completely');
-                })
-                .catch((err) => {
-                  return sendError(res, err, 'Error updating order or product.');
-                });
-            }
-          });
-        }
-      });
-  } else {
-    return sendErrorUnauthorized(res, '', 'Please login first.');
-  }
-};*/
-
-exports.updateOrderItem = async (req, res, next) => {
-  try {
-    let token = getToken(req.headers);
-    if (!token) {
-      return sendErrorUnauthorized(res, '', 'Please login first.');
-    }
-
-    const orderId = req.params.orderId;
-    const orderItemId = req.params.orderItemId;
-    const { productId, qty } = req.body;
-
-    const callbackOrder = await Order.findById(orderId).populate('orderItem').exec();
-
-    if (!callbackOrder) {
-      return sendError(res, null, 'Order not found.');
-    }
-
-    const orderItem = callbackOrder.orderItem.find((item) => item._id.equals(orderItemId));
-
-    if (!orderItem) {
-      return sendError(res, null, 'Order item not found.');
-    }
-
-    const currentProduct = await Product.findById(orderItem.productId).exec();
-
-    if (!currentProduct) {
-      return sendError(res, null, 'Cannot get current product');
-    }
-
-    const qtyDifference = qty - orderItem.qty;
-
-    if (productId !== orderItem.productId) {
-      currentProduct.stocks += orderItem.qty;
-      await currentProduct.save();
-
-      const newProduct = await Product.findById(productId).exec();
-
-      if (!newProduct || newProduct.stocks < qty) {
-        return sendError(res, null, 'Not enough stocks for the new product.');
-      } else {
-        newProduct.stocks -= qty;
-        await newProduct.save();
-
-        orderItem.productId = productId;
-        orderItem.productName = newProduct.name;
-      }
-    } else {
-      currentProduct.stocks -= qtyDifference;
-      await currentProduct.save();
-    }
-
-    orderItem.qty = qty;
-    orderItem.total = currentProduct.price * qty;
-
-    callbackOrder.totalPrice += qtyDifference * currentProduct.price;
-
-    await Promise.all([orderItem.save(), callbackOrder.save()]);
-
-    return sendSuccess(res, callbackOrder, 'Order Item Updated Completely');
-  } catch (err) {
-    return sendError(res, err, 'Error updating order item or order.');
-  }
-};
 
 exports.updateOrderItem = async (req, res, next) => {
   try {
