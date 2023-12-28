@@ -42,6 +42,7 @@ exports.list = (req, res) => {
 
   const filterOptions = [
     { $match: userFieldsFilter },
+    // { $sort: { createdAt: 1 } }, 
   ];
 
   const aggregateQuery = User.aggregate(filterOptions);
@@ -360,7 +361,7 @@ exports.addEmplooyeeUser = (req, res) => {
     try {
       const { email, username, fname, lname } = req.body;
 
-      req.body.role = 0;
+      // req.body.role = 0;
       req.body.password = generateRandomPassword(); // Set a random 6-digit password
 
       User.findOne({ email }).then(existingUser => {

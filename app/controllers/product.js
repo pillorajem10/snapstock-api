@@ -46,6 +46,7 @@ exports.list = (req, res, next) => {
 
     const filterOptions = [
       { $match: productFieldsFilter },
+      { $sort: { createdAt: -1 } },
     ];
 
     const aggregateQuery = Product.aggregate(filterOptions);
@@ -135,7 +136,7 @@ exports.updateById = (req, res, next) => {
           return sendError(res, err, 'Cannot update product');
         } else {
           console.log("REQ BODYYYYYYYYYYYYYY", req.body);
-          return sendSuccess(res, updatedProduct);
+          return sendSuccess(res, updatedProduct, 'Product updated successfully');
         }
       }
     );
@@ -158,7 +159,7 @@ exports.deleteById = (req, res, next) => {
       if (err || !product) {
         return sendError(res, {}, 'Cannot delete product');
       } else {
-        return sendSuccess(res, product);
+        return sendSuccess(res, product, 'Product deleted successfully.');
       }
     });
   } else {
