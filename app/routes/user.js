@@ -17,7 +17,7 @@ const {
 router.post('/', add);
 router.get('/', list);
 router.get('/:id', getById);
-router.get('/requestnewpassword/:id', requestNewPassword);
+router.post('/requestnewpassword', requestNewPassword);
 router.post('/changepassword/:token', changePassword);
 router.put('/:id', updateById);
 router.delete('/:id', deleteById);

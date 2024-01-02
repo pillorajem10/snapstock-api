@@ -42,7 +42,7 @@ exports.list = (req, res) => {
 
   const filterOptions = [
     { $match: userFieldsFilter },
-    // { $sort: { createdAt: 1 } }, 
+    // { $sort: { createdAt: 1 } },
   ];
 
   const aggregateQuery = User.aggregate(filterOptions);
@@ -558,7 +558,7 @@ exports.requestNewPassword = async (req, res) => {
 
   try {
     // Find user by email
-    const user = await User.findById(req.params.id);
+    const user = await User.findOne({ email });
 
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
@@ -573,7 +573,7 @@ exports.requestNewPassword = async (req, res) => {
     // Send an email with the reset password link
     sendResetPasswordEmail(user, token);
 
-    return sendSuccess(res, user, 'Request for new password already sent through your email');
+    return sendSuccess(res, user, 'Request for new password already sent through your email. Please wait for the email.');
   } catch (error) {
     console.error('Error requesting new password:', error);
     return res.status(500).json({ error: 'Internal server error' });
