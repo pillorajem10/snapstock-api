@@ -9,6 +9,8 @@ const smtpTransport = require('nodemailer-smtp-transport');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 
+const axios = require('axios'); // Require the axios library
+
 // Get all users
 exports.list = (req, res) => {
   const { pageIndex, pageSize, username } = req.query;
@@ -271,73 +273,103 @@ const sendVerificationEmailForEmployeeUser = async (emailNeeds) => {
 };
 
 
-exports.add = (req, res) => {
-  let username = req.body.username;
-  let email = req.body.email;
-  let fname = req.body.fname;
-  let lname = req.body.lname;
-  let password = req.body.password;
-  let repassword = req.body.repassword;
-  let category = req.body.category;
+exports.add = async (req, res) => {
+  const {
+    username,
+    email,
+    fname,
+    lname,
+    password,
+    repassword,
+    category
+  } = req.body;
+
+  console.log('REQ BODY REGISTER', req.body);
 
   if (username && password && repassword && email && fname && lname && category) {
     if (password === repassword) {
-      /* IN THIS SECTION ONCE YOU SUBMITED THE REQUEST THE CATEGORY FROM THE REQ.BODY WILL CREATE THE
-       CATEGORY FIRST ON THE DATABASE*/
+      // Extract the reCAPTCHA response from the request body
+      const recaptchaValue = req.body['g-recaptcha-response'];
 
-      const capitalizeFirstLetter = (str) => str.charAt(0).toUpperCase() + str.slice(1);
-      const capitalizedFname = capitalizeFirstLetter(req.body.category);
-      req.body.name = capitalizedFname;
-      Category.create(req.body, function (err, cat) {
-        const capitalizedFname = capitalizeFirstLetter(req.body.name);
-        console.log('CATEGORY NAMEEEEEEEEE', req.body)
-        if (err) {
-          console.log('ERROR SA ADD CATEGORY', err);
-          sendError(res, err, 'Add category failed', 400, 101, 'Category');
-        } else {
-          /* ONCE THE CATEGORY ON THE DATABASE WAS CREATE THE OBJECT ID FROM THE RESPONSE WILL BE THE CATEGORY ON THE USER*/
-          req.body.category = cat._id.toString();
-          try {
-              const { email, password, username, fname, lname } = req.body;
+      console.log('ReCAPTCHA VALUE', recaptchaValue);
 
-              User.findOne({ email }).then(existingUser => {
-                if (existingUser) {
-                  return sendError(res, err, 'User with this email already exists');
-                }
+      if (!recaptchaValue) {
+        return sendError(res, '', 'Please answer reCAPTCHA.');
+      }
 
-                // Capitalize the first letter of fname and lname
-                const capitalizedFname = capitalizeFirstLetter(req.body.fname);
-                const capitalizedLname = capitalizeFirstLetter(req.body.lname);
+      // Verify the reCAPTCHA response using axios
+      try {
+        const googleVerifyUrl = `https://www.google.com/recaptcha/api/siteverify?secret=6LeSrT8pAAAAAB-Krzdy7n6Fix7OQ3WFdJBp1AvS&response=${recaptchaValue}`;
+        const response = await axios.post(googleVerifyUrl);
+        const {
+          success
+        } = response.data;
 
-                const user = new User({
-                  ...req.body,
-                  fname: capitalizedFname,
-                  lname: capitalizedLname,
-                });
+        console.log('Google reCAPTCHA Response:', response.data);
 
-                user.save().then(() => {
-                  // Send verification email
+        if (success) {
+          // Continue with the user registration process
+
+          const capitalizeFirstLetter = (str) => str.charAt(0).toUpperCase() + str.slice(1);
+          const capitalizedFname = capitalizeFirstLetter(req.body.category);
+          req.body.name = capitalizedFname;
+
+          Category.create(req.body, (err, cat) => {
+            const capitalizedFname = capitalizeFirstLetter(req.body.name);
+            console.log('CATEGORY NAMEEEEEEEEE', req.body);
+
+            if (err) {
+              console.log('ERROR SA ADD CATEGORY', err);
+              return sendError(res, err, 'Add category failed', 400, 101, 'Category');
+            }
+
+            req.body.category = cat._id.toString();
+
+            User.findOne({
+              email
+            }).then(existingUser => {
+              if (existingUser) {
+                return sendError(res, err, 'User with this email already exists');
+              }
+
+              const capitalizedFname = capitalizeFirstLetter(req.body.fname);
+              const capitalizedLname = capitalizeFirstLetter(req.body.lname);
+
+              const user = new User({
+                ...req.body,
+                fname: capitalizedFname,
+                lname: capitalizedLname,
+              });
+
+              user.save()
+                .then(() => {
                   sendVerificationEmail(user)
                     .then(() => {
                       return sendSuccess(res, user);
                     })
                     .catch((error) => {
                       console.error('Error sending verification email:', error);
-                      sendError(res, error, 'Add user failed', 400, 101, 'User');
+                      return sendError(res, error, 'Add user failed', 400, 101, 'User');
                     });
-                }).catch((error) => {
+                })
+                .catch((error) => {
                   console.error('Error creating user:', error);
-                  sendError(res, error, 'Add user failed', 400, 101, 'User');
+                  return sendError(res, error, 'Add user failed', 400, 101, 'User');
                 });
-              });
-            } catch (error) {
-              console.error('Error creating user:', error);
-              sendError(res, error, 'Add user failed', 400, 101, 'User');
-            }
+            }).catch((error) => {
+              console.error('Error checking existing user:', error);
+              return sendError(res, error, 'Add user failed', 400, 101, 'User');
+            });
+          });
+        } else {
+          return sendError(res, '', 'Invalid reCAPTCHA.');
         }
-      });
+      } catch (e) {
+        console.error('Recaptcha verification error:', e);
+        return sendError(res, e, 'Recaptcha verification failed', 400, 102, 'User');
+      }
     } else {
-      return sendError(res, '', 'Password did not matched.');
+      return sendError(res, '', 'Password did not match.');
     }
   } else {
     return sendError(res, '', 'Please fill up the required fields.');
