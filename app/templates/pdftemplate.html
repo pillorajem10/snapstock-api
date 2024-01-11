@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Orders Report</title>
+  <style>
+    /* Add your styles here */
+    body {
+      font-family: Arial, sans-serif;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 8px;
+      text-align: left;
+    }
+    th {
+      background-color: #f2f2f2;
+    }
+    td.total, th.total {
+      text-align: right; /* Align total column to the right */
+    }
+
+    .finalTotal{
+      color: red;
+    }
+  </style>
+</head>
+<body>
+  <center><img class="logo" src="{{logoBase64}}" alt="Snapstock Logo"></center>
+  <h2>Orders Report - {{fomattedDateNow}}</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Ordered By</th>
+        <th>Date Ordered</th>
+        <th class="total">Total</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{#each orderList}}
+        <tr>
+          <td>{{this.customerName}}</td>
+          <td>{{this.monthOrdered}}/{{this.dateOrdered}}/{{this.yearOrdered}}</td>
+          <td class="total">{{this.totalPrice}}</td>
+        </tr>
+      {{/each}}
+    </tbody>
+  </table>
+  <p class="total">Total for the day: <span class="finalTotal">{{totalOrder}}</span></p>
+</body>
+</html>

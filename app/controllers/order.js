@@ -2,13 +2,19 @@ const Order = require('../models/Order.js');
 const OrderItem = require('../models/OrderItem.js');
 const Product = require('../models/Product.js');
 const mongoose = require('mongoose');
+const puppeteer = require('puppeteer');
+const fs = require('fs');
+const handlebars = require('handlebars');
+const path = require('path');
+const base64Img = require('base64-img');
+const excel = require('exceljs');
+const numeral = require('numeral');
 
-const { sendError, sendSuccess, convertMomentWithFormat, getToken, sendErrorUnauthorized } = require ('../utils/methods');
+const { sendError, sendSuccess, convertMomentWithFormat, getToken, sendErrorUnauthorized, formatPriceX } = require ('../utils/methods');
 
 //LIST ALL ORDERS
 exports.list = (req, res, next) => {
     let token = getToken(req.headers);
-    console.log('TUKEEEEEEEEEEEEEEEEEEEEEEEEEEEEEN', token)
     if (token) {
       const { pageIndex, pageSize, sort_by, sort_direction, customerName } = req.query;
 
@@ -72,6 +78,144 @@ exports.list = (req, res, next) => {
     }
 };
 
+exports.downloadExcel = async (req, res) => {
+  const { orderList, formattedDateNow, totalOrder } = req.body;
+
+  try {
+    // Create a new workbook
+    const workbook = new excel.Workbook();
+    const worksheet = workbook.addWorksheet('Orders');
+
+    // Add an image to the worksheet
+    const imageLink = 'D:\\Projects\\snapstock-api\\app\\templates\\snapstocklogo.png'; // Replace with the actual path to your image
+    const imageId = workbook.addImage({
+      filename: imageLink,
+      extension: 'png',
+    });
+    worksheet.addImage(imageId, 'A1:A4'); // Adjust the cell range as needed
+
+    // Add headers to the worksheet with bold font
+    const headerRow = worksheet.addRow(['Ordered By', 'Date Ordered', 'Total']);
+    headerRow.font = { bold: true };
+
+    // Add data to the worksheet
+    orderList.forEach((order) => {
+      const { customerName, monthOrdered, dateOrdered, yearOrdered, totalPrice } = order;
+      const formattedTotalPrice = new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(totalPrice);
+      worksheet.addRow([customerName, `${monthOrdered}/${dateOrdered}/${yearOrdered}`, formattedTotalPrice]);
+    });
+
+    // Skip two rows before adding totalOrder
+    worksheet.addRow([]);
+    worksheet.addRow([]);
+
+    // Add totalOrder to the worksheet with bold font, aligned to the right, and red font color
+    const totalRow = worksheet.addRow(['Total for the day:', '', totalOrder]);
+    totalRow.font = { bold: true, color: { argb: 'FF0000' } }; // Set font color to red
+    totalRow.getCell(1).alignment = { horizontal: 'left' }; // Align label to the left
+    totalRow.getCell(3).alignment = { horizontal: 'right' }; // Align total order to the right
+
+    // Adjust the width of the columns
+    worksheet.columns.forEach((column) => {
+      column.width = 50; // Adjust the width as needed
+    });
+
+    // Adjust the alignment of the "Total" column to the right
+    worksheet.getColumn(3).alignment = { horizontal: 'right' };
+
+    // Set response headers
+    res.setHeader('Content-Disposition', `attachment; filename=Orders_Report_${formattedDateNow}.xlsx`);
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+
+    // Send the workbook as the response
+    await workbook.xlsx.write(res);
+    res.end();
+  } catch (error) {
+    // Handle errors
+    console.error('Error generating Excel report:', error);
+    res.status(500).json({
+      success: false,
+      error,
+      message: 'Error generating Excel report.',
+    });
+  }
+};
+
+
+
+
+exports.downloadPDF = async (req, res, next) => {
+  const { orderList, totalOrder, formattedDateNow } = req.body;
+
+  try {
+    // Format the "totalPrice" or "total" in each order before passing it to the template
+    const formattedOrderList = orderList.map(order => ({
+      ...order,
+      totalPrice: formatPriceX(order.totalPrice), // Format total with peso sign
+    }));
+
+    // Format totalOrder with peso sign
+    const formattedTotalOrder = numeral(totalOrder).format('₱0,0.00');
+
+    // Construct the full path to the image
+    const imagePath = path.join(__dirname, '../templates/snapstocklogo.png');
+
+    // Convert image to base64
+    const logoBase64 = await new Promise((resolve, reject) => {
+      base64Img.base64(imagePath, (err, data) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(data);
+        }
+      });
+    });
+
+    // Construct the full path to the HTML template
+    const templatePath = path.join(__dirname, '../templates/pdftemplate.html');
+
+    // Read the HTML template
+    const templateHtml = fs.readFileSync(templatePath, 'utf-8');
+
+    // Compile the HTML template using Handlebars
+    const template = handlebars.compile(templateHtml);
+
+    // Use the template to generate HTML with formatted prices
+    const html = template({
+      orderList: formattedOrderList,
+      totalOrder,
+      formattedDateNow,
+      logoBase64,
+    });
+
+    // Launch a headless browser
+    const browser = await puppeteer.launch();
+    const page = await browser.newPage();
+
+    // Set the HTML content of the page
+    await page.setContent(html);
+
+    // Generate PDF
+    const pdfBuffer = await page.pdf({ format: 'A4' });
+
+    // Close the browser
+    await browser.close();
+
+    // Respond with success
+    res.setHeader('Content-Disposition', `attachment; filename=Orders_Report_${formattedDateNow}.pdf`);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.status(200).send(pdfBuffer);
+
+  } catch (error) {
+    // Handle errors
+    console.error('Error generating PDF:', error);
+    res.status(500).json({
+      success: false,
+      error,
+      message: 'Error generating PDF report.',
+    });
+  }
+};
 
 
 

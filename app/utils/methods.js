@@ -45,6 +45,16 @@ exports.sendError = (v, data, msg = '', errNo = 400, code = 101, collection = ''
 };
 
 
+exports.formatPriceX = (price, key = '') => {
+  const formattedPrice = parseFloat(price)
+    .toFixed(2)
+    .toString()
+    .replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+
+  return key === '' ? `₱${formattedPrice}` : `${key}₱ ${formattedPrice}`;
+};
+
+
 
 
 exports.sendErrorUnauthorized = (v, data, msg = '', errNo = 401, code = 101) => {

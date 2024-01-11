@@ -11,7 +11,9 @@ const {
   listOrderItems,
   getOrderItemById,
   deleteOrderItem,
-  updateOrderItem
+  updateOrderItem,
+  downloadPDF,
+  downloadExcel
 } = require('../controllers/order');
 
 // Order-specific routes
@@ -29,6 +31,10 @@ router.delete('/:id', deleteById);
 router.get('/orderitemgetbyid/:id', getOrderItemById);
 router.delete('/orderitemdeletebyid/:orderId/:orderItemId', deleteOrderItem);
 router.put('/orderitemupdatebyid/:orderId/:orderItemId', updateOrderItem);
+
+// generate reports
+router.post('/generatepdf', downloadPDF);
+router.post('/generateexcel', downloadExcel);
 
 
 module.exports = router;
