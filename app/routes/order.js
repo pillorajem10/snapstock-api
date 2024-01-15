@@ -33,8 +33,8 @@ router.delete('/orderitemdeletebyid/:orderId/:orderItemId', deleteOrderItem);
 router.put('/orderitemupdatebyid/:orderId/:orderItemId', updateOrderItem);
 
 // generate reports
-router.post('/generatepdf', downloadPDF);
-router.post('/generateexcel', downloadExcel);
+router.post('/report/generatepdf', downloadPDF);
+router.post('/report/generateexcel', downloadExcel);
 
 
 module.exports = router;

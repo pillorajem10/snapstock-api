@@ -1,8 +1,15 @@
 const Product = require('../models/Product.js');
 const mongoose = require('mongoose');
+const puppeteer = require('puppeteer');
+const fs = require('fs');
+const handlebars = require('handlebars');
+const path = require('path');
+const base64Img = require('base64-img');
+const excel = require('exceljs');
+const numeral = require('numeral');
 
 
-const { sendError, sendSuccess, getToken, sendErrorUnauthorized } = require ('../utils/methods');
+const { sendError, sendSuccess, getToken, sendErrorUnauthorized, formatPriceX } = require ('../utils/methods');
 
 
 // LIST ALL PRODUCTS
@@ -67,7 +74,139 @@ exports.list = (req, res, next) => {
 
 
 
+exports.downloadExcel = async (req, res) => {
+  const { productList, fomattedDateNow } = req.body;
 
+  try {
+    // Create a new workbook
+    const workbook = new excel.Workbook();
+    const worksheet = workbook.addWorksheet('Products');
+
+    // Add an image to the worksheet
+    const imageLink = 'D:\\Projects\\snapstock-api\\app\\templates\\snapstocklogo.png'; // Replace with the actual path to your image
+    const imageId = workbook.addImage({
+      filename: imageLink,
+      extension: 'png',
+    });
+    worksheet.addImage(imageId, 'A1:A4'); // Adjust the cell range as needed
+
+    const titileRow =worksheet.addRow(['Products report:', '', fomattedDateNow]);
+    titileRow.font = { bold: true, size: 14 };
+    titileRow.getCell(3).alignment = { horizontal: 'right' };
+    worksheet.addRow([]);
+
+    // Add headers to the worksheet with bold font
+    const headerRow = worksheet.addRow(['Name', 'Stock', 'Price']);
+    headerRow.font = { bold: true };
+    headerRow.getCell(3).alignment = { horizontal: 'right' };
+
+    // Add data to the worksheet
+    productList.forEach((product) => {
+      const { name, stocks, price} = product;
+      const formattedPrice = new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(price);
+
+      // Add rows with specified alignment for "Stock" and "Price" columns
+      const row = worksheet.addRow([name, stocks, formattedPrice]);
+      row.getCell(2).alignment = { horizontal: 'left' };  // Align "Stock" to the left
+      row.getCell(3).alignment = { horizontal: 'right' }; // Align "Price" to the right
+    });
+
+
+    // Adjust the width of the columns
+    worksheet.columns.forEach((column) => {
+      column.width = 50; // Adjust the width as needed
+    });
+
+
+    // Set response headers
+    res.setHeader('Content-Disposition', `attachment; filename=Product_Inventory_Report_${fomattedDateNow}.xlsx`);
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+
+    // Send the workbook as the response
+    await workbook.xlsx.write(res);
+    res.end();
+  } catch (error) {
+    // Handle errors
+    console.error('Error generating Excel report:', error);
+    res.status(500).json({
+      success: false,
+      error,
+      message: 'Error generating Excel report.',
+    });
+  }
+};
+
+
+
+
+exports.downloadPDF = async (req, res, next) => {
+  const { productList, fomattedDateNow } = req.body;
+
+  const formattedProductList = productList.map(product => ({
+    ...product,
+    price: formatPriceX(product.price), // Format total with peso sign
+  }));
+
+
+  try {
+    // Construct the full path to the image
+    const imagePath = path.join(__dirname, '../templates/snapstocklogo.png');
+
+    // Convert image to base64
+    const logoBase64 = await new Promise((resolve, reject) => {
+      base64Img.base64(imagePath, (err, data) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(data);
+        }
+      });
+    });
+
+    // Construct the full path to the HTML template
+    const templatePath = path.join(__dirname, '../templates/productsPdfTemplete.html');
+
+    // Read the HTML template
+    const templateHtml = fs.readFileSync(templatePath, 'utf-8');
+
+    // Compile the HTML template using Handlebars
+    const template = handlebars.compile(templateHtml);
+
+    // Use the template to generate HTML with formatted prices
+    const html = template({
+      productList: formattedProductList,
+      fomattedDateNow,
+      logoBase64,
+    });
+
+    // Launch a headless browser
+    const browser = await puppeteer.launch();
+    const page = await browser.newPage();
+
+    // Set the HTML content of the page
+    await page.setContent(html);
+
+    // Generate PDF
+    const pdfBuffer = await page.pdf({ format: 'A4' });
+
+    // Close the browser
+    await browser.close();
+
+    // Respond with success
+    res.setHeader('Content-Disposition', `attachment; filename=Product_Inventory_Report_${fomattedDateNow}.pdf`);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.status(200).send(pdfBuffer);
+
+  } catch (error) {
+    // Handle errors
+    console.error('Error generating PDF:', error);
+    res.status(500).json({
+      success: false,
+      error,
+      message: 'Error generating PDF report.',
+    });
+  }
+};
 
 
 

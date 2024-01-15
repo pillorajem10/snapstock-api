@@ -79,7 +79,7 @@ exports.list = (req, res, next) => {
 };
 
 exports.downloadExcel = async (req, res) => {
-  const { orderList, formattedDateNow, totalOrder } = req.body;
+  const { orderList, fomattedDateNow, totalOrder } = req.body;
 
   try {
     // Create a new workbook
@@ -93,6 +93,9 @@ exports.downloadExcel = async (req, res) => {
       extension: 'png',
     });
     worksheet.addImage(imageId, 'A1:A4'); // Adjust the cell range as needed
+
+    worksheet.addRow(['Orders report:', '', fomattedDateNow]).font = { bold: true, size: 14 };
+    worksheet.addRow([]);
 
     // Add headers to the worksheet with bold font
     const headerRow = worksheet.addRow(['Ordered By', 'Date Ordered', 'Total']);
@@ -124,7 +127,7 @@ exports.downloadExcel = async (req, res) => {
     worksheet.getColumn(3).alignment = { horizontal: 'right' };
 
     // Set response headers
-    res.setHeader('Content-Disposition', `attachment; filename=Orders_Report_${formattedDateNow}.xlsx`);
+    res.setHeader('Content-Disposition', `attachment; filename=Orders_Report_${fomattedDateNow}.xlsx`);
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
 
     // Send the workbook as the response
@@ -145,7 +148,7 @@ exports.downloadExcel = async (req, res) => {
 
 
 exports.downloadPDF = async (req, res, next) => {
-  const { orderList, totalOrder, formattedDateNow } = req.body;
+  const { orderList, totalOrder, fomattedDateNow } = req.body;
 
   try {
     // Format the "totalPrice" or "total" in each order before passing it to the template
@@ -172,7 +175,7 @@ exports.downloadPDF = async (req, res, next) => {
     });
 
     // Construct the full path to the HTML template
-    const templatePath = path.join(__dirname, '../templates/pdftemplate.html');
+    const templatePath = path.join(__dirname, '../templates/ordersPdfTemplate.html');
 
     // Read the HTML template
     const templateHtml = fs.readFileSync(templatePath, 'utf-8');
@@ -184,7 +187,7 @@ exports.downloadPDF = async (req, res, next) => {
     const html = template({
       orderList: formattedOrderList,
       totalOrder,
-      formattedDateNow,
+      fomattedDateNow,
       logoBase64,
     });
 
@@ -202,7 +205,7 @@ exports.downloadPDF = async (req, res, next) => {
     await browser.close();
 
     // Respond with success
-    res.setHeader('Content-Disposition', `attachment; filename=Orders_Report_${formattedDateNow}.pdf`);
+    res.setHeader('Content-Disposition', `attachment; filename=Orders_Report_${fomattedDateNow}.pdf`);
     res.setHeader('Content-Type', 'application/pdf');
     res.status(200).send(pdfBuffer);
 
