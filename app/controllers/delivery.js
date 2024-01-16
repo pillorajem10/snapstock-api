@@ -5,7 +5,7 @@ const { sendError, sendSuccess, convertMomentWithFormat, getToken, sendErrorUnau
 
 //LIST ALL PRODUCTS
 exports.list = (req, res, next) => {
-    const { pageIndex, pageSize, sort_by, sort_direction } = req.query;
+    const { pageIndex, pageSize, sort_by, sort_direction, productName } = req.query;
 
     console.log("REQ QUERYY", req.query)
 
@@ -28,11 +28,15 @@ exports.list = (req, res, next) => {
 
     const deliveryFieldsFilter = {
       stock : req.query.minimumPrice,
-      monthOrdered: req.query.monthOrdered ? +req.query.monthOrdered : undefined,
-      dateOrdered: req.query.dateOrdered ? +req.query.dateOrdered : undefined,
-      yearOrdered: req.query.yearOrdered ? +req.query.yearOrdered : undefined,
-      $text: req.query.name ? { $search: req.query.name } : undefined,
+      monthDelivered: req.query.monthDelivered ? +req.query.monthDelivered : undefined,
+      dateDelivered: req.query.dateDelivered ? +req.query.dateDelivered : undefined,
+      yearDelivered: req.query.yearDelivered ? +req.query.yearDelivered : undefined,
+      // $text: req.query.productName ? { $search: req.query.productName } : undefined,
     };
+
+    if (productName) {
+      deliveryFieldsFilter.productName = { $regex: productName, $options: 'i' }; // Case-insensitive regex search
+    }
 
     // Will remove a key if that key is undefined
     Object.keys(deliveryFieldsFilter).forEach(key => deliveryFieldsFilter[key] === undefined && delete deliveryFieldsFilter[key]);
