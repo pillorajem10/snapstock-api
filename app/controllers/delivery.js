@@ -1,5 +1,12 @@
 const Delivery = require('../models/Delivery.js');
 const Product = require('../models/Product.js');
+const puppeteer = require('puppeteer');
+const fs = require('fs');
+const handlebars = require('handlebars');
+const path = require('path');
+const base64Img = require('base64-img');
+const excel = require('exceljs');
+const numeral = require('numeral');
 
 const { sendError, sendSuccess, convertMomentWithFormat, getToken, sendErrorUnauthorized } = require ('../utils/methods');
 
@@ -61,9 +68,131 @@ exports.list = (req, res, next) => {
 
 
 
+exports.downloadPDF = async (req, res, next) => {
+  const { orderList, fomattedDateNow } = req.body;
 
 
+  try {
+    // Construct the full path to the image
+    const imagePath = path.join(__dirname, '../templates/snapstocklogo.png');
 
+    // Convert image to base64
+    const logoBase64 = await new Promise((resolve, reject) => {
+      base64Img.base64(imagePath, (err, data) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(data);
+        }
+      });
+    });
+
+    // Construct the full path to the HTML template
+    const templatePath = path.join(__dirname, '../templates/deliveryPdfTemplate.html');
+
+    // Read the HTML template
+    const templateHtml = fs.readFileSync(templatePath, 'utf-8');
+
+    // Compile the HTML template using Handlebars
+    const template = handlebars.compile(templateHtml);
+
+    // Use the template to generate HTML with formatted prices
+    const html = template({
+      orderList,
+      fomattedDateNow,
+      logoBase64,
+    });
+
+    // Launch a headless browser
+    const browser = await puppeteer.launch();
+    const page = await browser.newPage();
+
+    // Set the HTML content of the page
+    await page.setContent(html);
+
+    // Generate PDF
+    const pdfBuffer = await page.pdf({ format: 'A4' });
+
+    // Close the browser
+    await browser.close();
+
+    // Respond with success
+    res.setHeader('Content-Disposition', `attachment; filename=Res-stock_Inventory_Report_${fomattedDateNow}.pdf`);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.status(200).send(pdfBuffer);
+
+  } catch (error) {
+    // Handle errors
+    console.error('Error generating PDF:', error);
+    res.status(500).json({
+      success: false,
+      error,
+      message: 'Error generating PDF report.',
+    });
+  }
+};
+
+
+exports.downloadExcel = async (req, res) => {
+  const { orderList, fomattedDateNow } = req.body;
+
+  try {
+    // Create a new workbook
+    const workbook = new excel.Workbook();
+    const worksheet = workbook.addWorksheet('Deliveries');
+
+    // Add an image to the worksheet
+    const imageLink = 'D:\\Projects\\snapstock-api\\app\\templates\\snapstocklogo.png'; // Replace with the actual path to your image
+    const imageId = workbook.addImage({
+      filename: imageLink,
+      extension: 'png',
+    });
+    worksheet.addImage(imageId, 'A1:A4'); // Adjust the cell range as needed
+
+    const titileRow =worksheet.addRow(['Re-stock Inventory Report:', '', fomattedDateNow]);
+    titileRow.font = { bold: true, size: 14 };
+    titileRow.getCell(3).alignment = { horizontal: 'left' };
+    worksheet.addRow([]);
+
+    // Add headers to the worksheet with bold font
+    const headerRow = worksheet.addRow(['Product Name', 'Quantity added', 'Date of re-stocking']);
+    headerRow.font = { bold: true };
+    headerRow.getCell(3).alignment = { horizontal: 'left' };
+
+    // Add data to the worksheet
+    orderList.forEach((order) => {
+      const { productName, qty, monthDelivered, dateDelivered ,yearDelivered } = order;
+
+      // Add rows with specified alignment for "Stock" and "Price" columns
+      const row = worksheet.addRow([productName, qty, `${monthDelivered}/${dateDelivered}/${yearDelivered}`]);
+      row.getCell(2).alignment = { horizontal: 'left' };  // Align "Stock" to the left
+      row.getCell(3).alignment = { horizontal: 'left' }; // Align "Price" to the right
+    });
+
+
+    // Adjust the width of the columns
+    worksheet.columns.forEach((column) => {
+      column.width = 50; // Adjust the width as needed
+    });
+
+
+    // Set response headers
+    res.setHeader('Content-Disposition', `attachment; filename=Re-stock_Inventory_Report_${fomattedDateNow}.xlsx`);
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+
+    // Send the workbook as the response
+    await workbook.xlsx.write(res);
+    res.end();
+  } catch (error) {
+    // Handle errors
+    console.error('Error generating Excel report:', error);
+    res.status(500).json({
+      success: false,
+      error,
+      message: 'Error generating Excel report.',
+    });
+  }
+};
 
 
 

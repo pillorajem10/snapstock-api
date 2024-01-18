@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Add Inventory</title>
+  <style>
+    /* Add your styles here */
+    body {
+      font-family: Arial, sans-serif;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 8px;
+      text-align: left;
+    }
+    th {
+      background-color: #f2f2f2;
+    }
+    td.total, th.total {
+      text-align: right; /* Align total column to the right */
+    }
+
+    .finalTotal{
+      color: red;
+    }
+  </style>
+</head>
+<body>
+  <center><img class="logo" src="{{logoBase64}}" alt="Snapstock Logo"></center>
+  <h2>Re-stock Inventory Report - {{fomattedDateNow}}</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Product</th>
+        <th>Quantity added</th>
+        <th>Date of re-stocking</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{#each orderList}}
+        <tr>
+          <td>{{this.productName}}</td>
+          <td>{{this.qty}}</td>
+          <td>{{this.monthDelivered}}/{{this.dateDelivered}}/{{this.yearDelivered}}</td>
+        </tr>
+      {{/each}}
+    </tbody>
+  </table>
+</body>
+</html>
