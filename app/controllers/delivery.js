@@ -50,6 +50,7 @@ exports.list = (req, res, next) => {
 
     const filterOptions = [
       { $match: deliveryFieldsFilter },
+      { $sort: { createdAt: -1 } },
     ];
 
     const aggregateQuery = Delivery.aggregate(filterOptions);
@@ -165,8 +166,8 @@ exports.downloadExcel = async (req, res) => {
 
       // Add rows with specified alignment for "Stock" and "Price" columns
       const row = worksheet.addRow([productName, qty, `${monthDelivered}/${dateDelivered}/${yearDelivered}`]);
-      row.getCell(2).alignment = { horizontal: 'left' };  // Align "Stock" to the left
-      row.getCell(3).alignment = { horizontal: 'left' }; // Align "Price" to the right
+      row.getCell(2).alignment = { horizontal: 'left' };
+      row.getCell(3).alignment = { horizontal: 'left' };
     });
 
 
@@ -207,22 +208,6 @@ exports.add = (req, res, next) => {
         if (err || !product) {
           return sendError(res, err, 'Cannot get product')
         } else {
-          /*
-          callbackOrder.orderItem.push(orderItem);
-
-          orderItem.total = product.price * orderItem.qty;
-          orderItem.productName = product.name;
-          orderItem.credit = 'false';
-
-          callbackOrder.totalPrice = callbackOrder.totalPrice + orderItem.total;
-
-          product.stocks = product.stocks - orderItem.qty;
-
-
-          product.save();
-          orderItem.save();
-          callbackOrder.save();
-          */
           const convertedDate = convertMomentWithFormat(delivery.createdAt);
           const month = +convertedDate.split('/')[0];
           const date = +convertedDate.split('/')[1];
@@ -284,15 +269,26 @@ exports.updateById = (req, res, next) => {
 
 
 
-
-
-//DELETE BY ID
+// DELETE BY ID
 exports.deleteById = (req, res, next) => {
   Delivery.findByIdAndRemove(req.params.id, req.body, function (err, delivery) {
     if (err || !delivery) {
       return sendError(res, {}, 'Cannot delete delivery');
     } else {
-      return sendSuccess(res, delivery);
+      const productId = delivery.productId;
+      const qty = delivery.qty;
+
+      // Find the product and update the stocks by subtracting the quantity
+      Product.findById(productId, function (err, product) {
+        if (err || !product) {
+          return sendError(res, err, 'Cannot get product');
+        } else {
+          product.stocks = Math.max(0, product.stocks - qty);
+          product.save();
+        }
+      });
+
+      return sendSuccess(res, delivery, 'Re-stock product deleted successfully');
     }
   });
 }
