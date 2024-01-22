@@ -255,16 +255,75 @@ exports.getById = (req, res, next) => {
 
 
 //UPDATE BY ID
-exports.updateById = (req, res, next) => {
-  Delivery.findByIdAndUpdate(req.params.id, req.body, { new: true } ).populate('productId').exec((err, delivery) => {
-    console.log("REQ BODYYYYYYYYYYYYYY", req.body)
-    if(err || !delivery){
-      return sendSuccess(res, delivery)
-    } else {
-      return sendSuccess(res, delivery)
+exports.updateById = async (req, res, next) => {
+  const deliveryId = req.params.id;
+
+  try {
+    // Fetch the existing delivery to get the previous productId and quantity
+    const existingDelivery = await Delivery.findById(deliveryId).populate('productId');
+
+    if (!existingDelivery) {
+      return sendError(res, null, 'Cannot find existing delivery');
     }
-  });
-}
+
+    // Save the previous productId and quantity
+    const prevProductId = existingDelivery.productId;
+    const prevQty = existingDelivery.qty;
+
+    // Check if productId and qty are both changed
+    const productIdChanged = req.body.productId && req.body.productId.toString() !== prevProductId.toString();
+    const qtyChanged = req.body.qty !== undefined && req.body.qty !== prevQty;
+
+    // Update the delivery and retrieve the updated document
+    const updatedDelivery = await Delivery.findByIdAndUpdate(deliveryId, req.body, { new: true }).populate('productId');
+
+    // Update the product stocks based on the changes
+    if (productIdChanged && qtyChanged) {
+      // Scenario: Both productId and qty are changed
+      await updateProductStocks(prevProductId, -prevQty);  // Revert previous product stocks
+      await updateProductStocks(updatedDelivery.productId, req.body.qty);  // Update new product stocks
+    } else if (productIdChanged) {
+      // Scenario: Only productId is changed
+      await updateProductStocks(prevProductId, -prevQty);  // Revert previous product stocks
+      await updateProductStocks(updatedDelivery.productId, updatedDelivery.qty);  // Update new product stocks
+    } else if (qtyChanged) {
+      // Scenario: Only qty is changed
+      await updateProductStocks(updatedDelivery.productId, req.body.qty - prevQty);  // Update product stocks based on qty difference
+    }
+
+    // Send success response with the updated delivery
+    return sendSuccess(res, updatedDelivery, 'Delivery updated successfully');
+  } catch (error) {
+    // Handle errors
+    return sendError(res, error, 'Failed to update delivery');
+  }
+};
+
+// Function to update a product's stocks
+const updateProductStocks = async (productId, quantity) => {
+  const convertedQty = parseInt(quantity);
+
+  try {
+    const product = await Product.findById(productId);
+    if (!product) {
+      throw new Error('Product not found');
+    }
+
+    // Update the product stocks by considering the quantity difference
+    product.stocks = Math.max(0, product.stocks + convertedQty);
+    await product.save();
+  } catch (error) {
+    throw error;
+  }
+};
+
+
+
+
+
+
+
+
 
 
 
