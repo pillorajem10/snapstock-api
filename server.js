@@ -4,10 +4,13 @@ const cors = require('cors');
 const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
 const dotenv = require('dotenv');
+const http = require('http');
+const socketIO = require('socket.io');
 
 //FUNCTIONS
 const app = express();
 const port = 4000;
+const server = http.createServer(app);
 
 
 
@@ -42,12 +45,28 @@ connection.once('open', () => {
 })
 
 
+// SOCKET IO
+const io = socketIO(server, {
+  cors: {
+    origin: 'http://localhost:3000',
+    methods: ['GET', 'POST'],
+    credentials: true,
+  },
+});
+
+io.on('connection', (socket) => {
+  console.log('A user connected');
+
+  socket.on('disconnect', () => {
+    console.log('User disconnected');
+  });
+});
 
 
 
 //ROUTES
 app.use('/product', product);
-app.use('/order', order);
+app.use('/order', order(io));
 app.use('/delivery', delivery);
 app.use('/user', user);
 app.use('/auth', auth);
@@ -57,6 +76,6 @@ app.use('/category', category);
 
 
 // LISTENER
-app.listen(port, () => {
+server.listen(port, () => {
   console.log("Server is running on Port: " + port);
 });

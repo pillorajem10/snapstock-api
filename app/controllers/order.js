@@ -9,6 +9,7 @@ const path = require('path');
 const base64Img = require('base64-img');
 const excel = require('exceljs');
 const numeral = require('numeral');
+const jwt = require('jsonwebtoken');
 
 const { sendError, sendSuccess, convertMomentWithFormat, getToken, sendErrorUnauthorized, formatPriceX } = require ('../utils/methods');
 
@@ -283,34 +284,41 @@ exports.listOrderItems = (req, res, next) => {
 
 
 //CREATE ORDER
-exports.add = (req, res, next) => {
+exports.add = (req, res, io) => {
   let token = getToken(req.headers);
   if (token) {
+    const decodedToken = jwt.decode(token);
+
     Order.create(req.body, function (err, order) {
-      if (err) {
-        return sendError(res, err, 'Add order failed')
-      } else {
-        const convertedDate = convertMomentWithFormat(order.createdAt);
-        const month = +convertedDate.split('/')[0];
-        const date = +convertedDate.split('/')[1];
-        const year = +convertedDate.split('/')[2];
+    if (err) {
+      return sendError(res, err, 'Add order failed');
+    } else {
+      const convertedDate = convertMomentWithFormat(order.createdAt);
+      const month = +convertedDate.split('/')[0];
+      const date = +convertedDate.split('/')[1];
+      const year = +convertedDate.split('/')[2];
 
-        order.monthOrdered = month;
-        order.dateOrdered = date;
-        order.yearOrdered = year;
+      order.monthOrdered = month;
+      order.dateOrdered = date;
+      order.yearOrdered = year;
 
-        order.credit = 'false';
+      order.credit = 'false';
 
-        order.save();
+      order.save();
 
-        return sendSuccess(res, order)
+      if (io) {
+        console.log('DECODED TOKENNN', decodedToken.user.fname);
+        io.emit('newOrder', `${decodedToken.user.fname} added an order`);
+        console.log('Successfully emitted orderAdded event');
       }
-    });
-  } else {
-    return sendErrorUnauthorized(res, "", "Please login first.")
-  }
-}
 
+      return sendSuccess(res, order);
+    }
+  });
+  } else {
+    return sendErrorUnauthorized(res, '', 'Please login first.');
+  }
+};
 
 //GET BY ID
 exports.getById = (req, res, next)=>{
