@@ -28,6 +28,7 @@ const delivery = require('./app/routes/delivery');
 const user = require('./app/routes/user');
 const auth = require('./app/routes/auth');
 const category = require('./app/routes/category');
+const notification = require('./app/routes/notification');
 
 
 
@@ -57,6 +58,12 @@ const io = socketIO(server, {
 io.on('connection', (socket) => {
   console.log('A user connected');
 
+  // Handle join room event
+  socket.on('joinRoom', (category) => {
+    socket.join(category);
+  });
+
+  // Handle disconnect event
   socket.on('disconnect', () => {
     console.log('User disconnected');
   });
@@ -71,6 +78,7 @@ app.use('/delivery', delivery);
 app.use('/user', user);
 app.use('/auth', auth);
 app.use('/category', category);
+app.use('/notification', notification);
 
 
 

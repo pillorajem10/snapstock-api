@@ -1,6 +1,7 @@
 const Order = require('../models/Order.js');
 const OrderItem = require('../models/OrderItem.js');
 const Product = require('../models/Product.js');
+const Notification = require('../models/Notification.js');
 const mongoose = require('mongoose');
 const puppeteer = require('puppeteer');
 const fs = require('fs');
@@ -18,9 +19,6 @@ exports.list = (req, res, next) => {
     let token = getToken(req.headers);
     if (token) {
       const { pageIndex, pageSize, sort_by, sort_direction, customerName } = req.query;
-
-      console.log("REQ QUERYYYYYY ORDER", req.query)
-
       const page = pageIndex;
       const limit = pageSize;
       const sortDirection = sort_direction ? sort_direction.toLowerCase() : undefined;
@@ -68,7 +66,6 @@ exports.list = (req, res, next) => {
         sortPageLimit,
         (err, result) => {
         if (err) {
-          console.log("ERRoRRRRRRRRRRRRRRRRR", err)
           return sendError(res, err, 'Server Failed');
         } else {
           return sendSuccess(res, result);
@@ -136,7 +133,6 @@ exports.downloadExcel = async (req, res) => {
     res.end();
   } catch (error) {
     // Handle errors
-    console.error('Error generating Excel report:', error);
     res.status(500).json({
       success: false,
       error,
@@ -212,7 +208,6 @@ exports.downloadPDF = async (req, res, next) => {
 
   } catch (error) {
     // Handle errors
-    console.error('Error generating PDF:', error);
     res.status(500).json({
       success: false,
       error,
@@ -266,7 +261,6 @@ exports.listOrderItems = (req, res, next) => {
         sortPageLimit,
         (err, result) => {
         if (err) {
-          console.log("ERRoRRRRRRRRRRRRRRRRR", err)
           return sendError(res, err, 'Server Failed');
         } else {
           return sendSuccess(res, result);
@@ -290,31 +284,37 @@ exports.add = (req, res, io) => {
     const decodedToken = jwt.decode(token);
 
     Order.create(req.body, function (err, order) {
-    if (err) {
-      return sendError(res, err, 'Add order failed');
-    } else {
-      const convertedDate = convertMomentWithFormat(order.createdAt);
-      const month = +convertedDate.split('/')[0];
-      const date = +convertedDate.split('/')[1];
-      const year = +convertedDate.split('/')[2];
+      if (err) {
+        return sendError(res, err, 'Add order failed');
+      } else {
+        const convertedDate = convertMomentWithFormat(order.createdAt);
+        const month = +convertedDate.split('/')[0];
+        const date = +convertedDate.split('/')[1];
+        const year = +convertedDate.split('/')[2];
 
-      order.monthOrdered = month;
-      order.dateOrdered = date;
-      order.yearOrdered = year;
+        order.monthOrdered = month;
+        order.dateOrdered = date;
+        order.yearOrdered = year;
 
-      order.credit = 'false';
+        order.credit = 'false';
 
-      order.save();
+        order.save();
 
-      if (io) {
-        console.log('DECODED TOKENNN', decodedToken.user.fname);
-        io.emit('newOrder', `${decodedToken.user.fname} added an order`);
-        console.log('Successfully emitted orderAdded event');
+        // Save the notification in the database
+        const notification = new Notification({
+          category: decodedToken.user.category,
+          message: `${decodedToken.user.fname} added an order`
+        });
+
+        notification.save();
+
+        if (io) {
+          io.to(decodedToken.user.category).emit('newOrder', `${decodedToken.user.fname} added an order`);
+        }
+
+        return sendSuccess(res, order);
       }
-
-      return sendSuccess(res, order);
-    }
-  });
+    });
   } else {
     return sendErrorUnauthorized(res, '', 'Please login first.');
   }
@@ -342,7 +342,6 @@ exports.updateById = (req, res, next)=>{
   let token = getToken(req.headers);
   if (token) {
     Order.findByIdAndUpdate(req.params.id, req.body, { new: true } ).populate('orderItem').exec((err, order) => {
-      console.log("REQ BODYYYYYYYYYYYYYY", req.body)
       if(err || !order){
         return sendError(res, null, 'Unable to find order.')
       } else {
@@ -425,7 +424,6 @@ exports.addOrderItem = (req, res, next) => {
             } else {
 
               if (product.stocks < orderItem.qty) {
-                console.log("PASOK SA ERROR")
                 return sendError(res, err, 'Sorry this product is short for stocks to fulfill your quantity')
               } else {
                 callbackOrder.orderItem.push(orderItem);
@@ -457,12 +455,10 @@ exports.addOrderItem = (req, res, next) => {
 };
 
 exports.getOrderItemById = (req, res, next) => {
-  console.log('Reached getOrderItemById route');
   let token = getToken(req.headers);
   if (token) {
     OrderItem.findById(req.params.id, function (err, orderItem) {
       if (err || !orderItem) {
-        console.log('ERR', err);
         return sendError(res, err, 'Cannot get order item')
       } else {
         return sendSuccess(res, orderItem)
@@ -476,7 +472,6 @@ exports.getOrderItemById = (req, res, next) => {
 exports.deleteOrderItem = (req, res, next) => {
   let token = getToken(req.headers);
   if (token) {
-    console.log('PARAMS', req.params);
     Order.findById(req.params.orderId)
       .populate('orderItem')
       .exec((err, callbackOrder) => {

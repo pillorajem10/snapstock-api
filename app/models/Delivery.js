@@ -13,7 +13,7 @@ let DeliverySchema = new mongoose.Schema (
     productName: { type: String, default: '' },
     qty: { type: Number, default: 0 },
     total: { type: Number, default: 0 },
-    category: { type: String, default: ''},
+    category: { type: ObjectId, ref: "Category" },
   },
   {
     timestamps: true,
