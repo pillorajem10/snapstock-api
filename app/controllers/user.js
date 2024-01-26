@@ -8,6 +8,10 @@ const nodemailer = require('nodemailer');
 const smtpTransport = require('nodemailer-smtp-transport');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
+const dotenv = require('dotenv');
+const secretKey = process.env.JWT_SECRET_KEY;
+const captchaSecret = process.env.CAPTCHA_SECRET_KEY;
+
 
 const axios = require('axios'); // Require the axios library
 
@@ -68,7 +72,7 @@ exports.list = (req, res) => {
 
 
 const sendVerificationEmail = async (user) => {
-  const token = jwt.sign({ userId: user._id }, 'your-secret-key', { expiresIn: '1w' });
+  const token = jwt.sign({ userId: user._id }, secretKey, { expiresIn: '1w' });
 
   user.verificationToken = token;
   await user.save();
@@ -76,8 +80,8 @@ const sendVerificationEmail = async (user) => {
   const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
-      user: 'snapstockinventorychecker@gmail.com',
-      pass: 'tvuw hhos jsvj celm',
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASSWORD,
     },
     tls: {
       rejectUnauthorized: false,
@@ -141,8 +145,8 @@ const sendResetPasswordEmail = async (user, token) => {
   const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
-      user: 'snapstockinventorychecker@gmail.com',
-      pass: 'tvuw hhos jsvj celm',
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASSWORD,
     },
     tls: {
       rejectUnauthorized: false,
@@ -202,7 +206,7 @@ const sendResetPasswordEmail = async (user, token) => {
 
 const sendVerificationEmailForEmployeeUser = async (emailNeeds) => {
   console.log('EMAIL NEEEDSSSSS', emailNeeds);
-  const token = jwt.sign({ userId: emailNeeds.user._id }, 'your-secret-key', { expiresIn: '1w' });
+  const token = jwt.sign({ userId: emailNeeds.user._id }, secretKey, { expiresIn: '1w' });
 
   emailNeeds.user.verificationToken = token;
   await emailNeeds.user.save();
@@ -210,8 +214,8 @@ const sendVerificationEmailForEmployeeUser = async (emailNeeds) => {
   const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
-      user: 'snapstockinventorychecker@gmail.com',
-      pass: 'tvuw hhos jsvj celm',
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASSWORD,
     },
     tls: {
       rejectUnauthorized: false,
@@ -299,7 +303,7 @@ exports.add = async (req, res) => {
 
       // Verify the reCAPTCHA response using axios
       try {
-        const googleVerifyUrl = `https://www.google.com/recaptcha/api/siteverify?secret=6LeSrT8pAAAAAB-Krzdy7n6Fix7OQ3WFdJBp1AvS&response=${recaptchaValue}`;
+        const googleVerifyUrl = `https://www.google.com/recaptcha/api/siteverify?secret=${captchaSecret}&response=${recaptchaValue}`;
         const response = await axios.post(googleVerifyUrl);
         const {
           success
@@ -443,67 +447,6 @@ exports.addEmplooyeeUser = (req, res) => {
   }
 };
 
-/*exports.add = async (req, res) => {
-  // Function to generate a random verification token
-  function generateVerificationToken() {
-    return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-  }
-
-  const transporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-      user: 'pillorajem10@gmail.com',
-      pass: 'kmwa cuuz ovxt ygcv',
-    },
-    tls: {
-      rejectUnauthorized: false,
-    },
-  });
-
-  try {
-    const { username, password, repassword } = req.body;
-    const email = 'pillorajem7@gmail.com'; // Use the email from req.body or any other source
-
-    if (username && password && repassword && email) {
-      if (password === repassword) {
-        const verificationToken = generateVerificationToken();
-
-        // Send verification email
-        const mailOptions = {
-          from: 'pillorajem10@gmail.com',
-          to: email,
-          subject: 'Email Verification',
-          text: `Click the following link to verify your email: http://your-website.com/verify/${verificationToken}`
-        };
-
-        transporter.sendMail(mailOptions, async (error, info) => {
-          if (error) {
-            console.error('Error sending verification email:', error);
-            return res.status(500).json({ error: 'Email verification failed' });
-          } else {
-            // Save user to the database with verification token
-            const user = await User.create({
-              username,
-              password,
-              repassword,
-              email,
-              verificationToken,
-            });
-
-            return res.status(200).json({ message: 'Email verification sent. Please check your email.', user });
-          }
-        });
-      } else {
-        return res.status(400).json({ error: 'Password did not match.' });
-      }
-    } else {
-      return res.status(400).json({ error: 'Please fill up the required fields.' });
-    }
-  } catch (error) {
-    console.error('Error creating user:', error);
-    return res.status(500).json({ error: 'Internal server error' });
-  }
-};*/
 
 // Function to handle email verification
 exports.verifyUser = async (req, res) => {
@@ -511,7 +454,7 @@ exports.verifyUser = async (req, res) => {
 
   try {
     // Decode the token
-    const decoded = jwt.verify(token, 'your-secret-key');
+    const decoded = jwt.verify(token, secretKey);
 
     // Find the user with the decoded user ID
     const user = await User.findById(decoded.userId);
@@ -597,7 +540,7 @@ exports.requestNewPassword = async (req, res) => {
     }
 
     // Generate a reset token and save it to the user document
-    const token = jwt.sign({ userId: user._id }, 'your-secret-key', { expiresIn: '1h' });
+    const token = jwt.sign({ userId: user._id }, secretKey, { expiresIn: '1h' });
 
     user.verificationToken = token;
     await user.save();
@@ -625,7 +568,7 @@ exports.changePassword = async (req, res) => {
 
     try {
       // Verify the token
-      const decodedToken = jwt.verify(token, 'your-secret-key');
+      const decodedToken = jwt.verify(token, secretKey);
       bcrypt.genSalt(10, (err, salt) => {
         if (err) {
           return sendError(res, err, "Error generating salt for password update");
