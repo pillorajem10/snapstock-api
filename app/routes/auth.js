@@ -4,7 +4,8 @@ const router = express.Router();
 const User = require('../models/User.js');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
-const secretKey = 'your-secret-key';
+const dotenv = require('dotenv');
+const secretKey = process.env.JWT_SECRET_KEY;
 
 const { sendError, sendSuccess, getToken, sendErrorUnauthorized } = require ('../utils/methods');
 
@@ -51,7 +52,6 @@ router.post('/login', (req, res) => {
         expiresIn: '24h',
       });
 
-      console.log('USERRRRRRRRRRR', user);
       return sendSuccess(res, { token });
     });
   });
