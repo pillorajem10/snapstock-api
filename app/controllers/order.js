@@ -190,7 +190,8 @@ exports.downloadPDF = async (req, res, next) => {
 
     // Launch a headless browser
     const browser = await puppeteer.launch({
-      ignoreDefaultArgs: ['--disable-extensions'],
+      headless: true,
+      args: ['--enable-gpu'],
     });
 
 
