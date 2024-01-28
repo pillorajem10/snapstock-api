@@ -3,11 +3,12 @@ const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
-const dotenv = require('dotenv');
+const dotenv = require('dotenv').config(); // Move dotenv.config() here
 const http = require('http');
 const socketIO = require('socket.io');
 
-//FUNCTIONS
+// ...
+
 const app = express();
 const port = process.env.SERVER === 'LIVE' ? 3074 : 4000;
 const frontEndUrl = process.env.SERVER === 'LIVE' ? 'https://snapstock.site' : 'http://localhost:3000';
@@ -15,9 +16,9 @@ const server = http.createServer(app);
 
 
 
+
 //MIDDLEWARES
 app.use(cors());
-dotenv.config();
 app.use(bodyParser.json());
 
 
@@ -88,4 +89,5 @@ app.use('/notification', notification);
 server.listen(port, () => {
   console.log("Server is running on Port: " + port);
   console.log("Front URL", frontEndUrl)
+  console.log("SERVER", process.env.SERVER)
 });
