@@ -190,8 +190,9 @@ exports.downloadPDF = async (req, res, next) => {
 
     // Launch a headless browser
     const browser = await puppeteer.launch({
-      args: ['--no-sandbox', '--disable-setuid-sandbox'],
+      ignoreDefaultArgs: ['--disable-extensions'],
     });
+
 
     const page = await browser.newPage();
 
