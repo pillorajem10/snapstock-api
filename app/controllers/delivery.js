@@ -105,7 +105,8 @@ exports.downloadPDF = async (req, res, next) => {
     });
 
     // Launch a headless browser
-    const browser = await puppeteer.launch({ headless: 'new' });
+    const browser = await puppeteer.launch({ headless: false });
+
     const page = await browser.newPage();
 
     // Set the HTML content of the page
