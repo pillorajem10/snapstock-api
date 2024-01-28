@@ -8,12 +8,13 @@ const nodemailer = require('nodemailer');
 const smtpTransport = require('nodemailer-smtp-transport');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
-const dotenv = require('dotenv');
+// const dotenv = require('dotenv').config();
 const secretKey = process.env.JWT_SECRET_KEY;
 const captchaSecret = process.env.CAPTCHA_SECRET_KEY;
 
 
 const axios = require('axios'); // Require the axios library
+const frontEndUrl = process.env.SERVER === 'LIVE' ? 'https://snapstock.site' : 'http://localhost:3000';
 
 // Get all users
 exports.list = (req, res) => {
@@ -72,6 +73,7 @@ exports.list = (req, res) => {
 
 
 const sendVerificationEmail = async (user) => {
+  console.log('FRONTEND URL', frontEndUrl);
   const token = jwt.sign({ userId: user._id }, secretKey, { expiresIn: '1w' });
 
   user.verificationToken = token;
@@ -122,7 +124,7 @@ const sendVerificationEmail = async (user) => {
               <p>Dear ${user.fname},</p>
               <p>Thank you for registering with Snap Stock Inventory Checker! We are delighted to have you as a new member of our community.</p>
               <p>Your account is already added to our sytem. But before logging in, please verify your account by clicking the following link:</p>
-              <p><a href="http://localhost:3000/verify/${token}">Verify Your Account</a></p>
+              <p><a href="${frontEndUrl}/verify/${token}">Verify Your Account</a></p>
               <p>Once you've clicked the link to verify your account, you'll be routed to   the login page and you'll be able to login your account</p>
               <p>If you have any questions or need assistance, feel free to reach out to our support team at snapstockinventorychecker@gmail.com.</p>
               <p>We wish you a great experience with Snap Stock Inventory Checker!</p>
@@ -141,7 +143,8 @@ const sendVerificationEmail = async (user) => {
 };
 
 const sendResetPasswordEmail = async (user, token) => {
-  const resetPasswordLink = `http://localhost:3000/changepassword/${token}`;
+  console.log('FRONT URL', frontEndUrl);
+  const resetPasswordLink = `${frontEndUrl}/changepassword/${token}`;
   const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
@@ -205,7 +208,7 @@ const sendResetPasswordEmail = async (user, token) => {
 };
 
 const sendVerificationEmailForEmployeeUser = async (emailNeeds) => {
-  console.log('EMAIL NEEEDSSSSS', emailNeeds);
+  console.log('FRONTEND URL', frontEndUrl);
   const token = jwt.sign({ userId: emailNeeds.user._id }, secretKey, { expiresIn: '1w' });
 
   emailNeeds.user.verificationToken = token;
@@ -256,7 +259,7 @@ const sendVerificationEmailForEmployeeUser = async (emailNeeds) => {
               <p>Hello ${emailNeeds.user.fname},</p>
               <p>Looks like you're now part of the Snap Stock community. We are thrilled to have you on board!</p>
               <p>Your employee account is now active. Before you log in, please take a moment to verify your account by clicking the following link:</p>
-              <p><a href="http://localhost:3000/verify/${token}">Verify Your Account</a></p>
+              <p><a href="${frontEndUrl}/verify/${token}">Verify Your Account</a></p>
               <p>Your initial password is: ${emailNeeds.password}. Make sure to complete the verification process before logging in for the first time.</p>
               <p>Once you've clicked the link to verify your account, you'll be routed to   the login page and you'll be able to login your account</p>
               <p>If you have any questions or need assistance, feel free to reach out to our support team at snapstockinventorychecker@gmail.com.</p>
