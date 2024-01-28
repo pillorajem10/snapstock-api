@@ -105,7 +105,11 @@ exports.downloadPDF = async (req, res, next) => {
     });
 
     // Launch a headless browser
-    const browser = await puppeteer.launch();
+    const browser = await puppeteer.launch({
+      headless: true,
+      args: ['--no-sandbox', '--disable-setuid-sandbox'],
+    });
+    
     const page = await browser.newPage();
 
     // Set the HTML content of the page
@@ -143,7 +147,7 @@ exports.downloadExcel = async (req, res) => {
     const worksheet = workbook.addWorksheet('Deliveries');
 
     // Add an image to the worksheet
-    const imageLink = 'D:\\Projects\\snapstock-api\\app\\templates\\snapstocklogo.png'; // Replace with the actual path to your image
+    const imageLink = path.join(__dirname, '../templates/snapstocklogo.png');
     const imageId = workbook.addImage({
       filename: imageLink,
       extension: 'png',
