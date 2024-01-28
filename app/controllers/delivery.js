@@ -105,7 +105,10 @@ exports.downloadPDF = async (req, res, next) => {
     });
 
     // Launch a headless browser
-    const browser = await puppeteer.launch({ headless: false });
+    const browser = await puppeteer.launch({
+      executablePath: 'google-chrome-unstable',
+      args: ['--no-sandbox', '--disable-setuid-sandbox'],
+    });
 
     const page = await browser.newPage();
 
