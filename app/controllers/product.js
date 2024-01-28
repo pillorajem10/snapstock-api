@@ -179,8 +179,8 @@ exports.downloadPDF = async (req, res, next) => {
 
     // Launch a headless browser
     const browser = await puppeteer.launch({
-      headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox', '--enable-gpu'],
+      // headless: true,
+      args: ["--no-sandbox", "--disable-setuid-sandbox"]
     });
     const page = await browser.newPage();
 
