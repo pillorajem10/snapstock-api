@@ -59,7 +59,7 @@ const io = socketIO(server, {
 });
 
 io.on('connection', (socket) => {
-  // console.log('A user connected');
+   console.log('A user connected');
 
   // Handle join room event
   socket.on('joinRoom', (category, callback) => {
@@ -82,7 +82,7 @@ io.on('connection', (socket) => {
 
   // Handle disconnect event
   socket.on('disconnect', () => {
-    // console.log('User disconnected');
+    console.log('User disconnected');
   });
 });
 
