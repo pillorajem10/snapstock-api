@@ -14,8 +14,6 @@ const { sendError, sendSuccess, convertMomentWithFormat, getToken, sendErrorUnau
 exports.list = (req, res, next) => {
     const { pageIndex, pageSize, sort_by, sort_direction, productName } = req.query;
 
-    console.log("REQ QUERYY", req.query)
-
     const page = pageIndex;
     const limit = pageSize;
     const sortDirection = sort_direction ? sort_direction.toLowerCase() : undefined;
@@ -59,7 +57,6 @@ exports.list = (req, res, next) => {
       sortPageLimit,
       (err, result) => {
       if (err) {
-        console.log("ERRoRRRRRRRRRRRRRRRRR", err)
         return sendError(res, err, 'Server Failed');
       } else {
         return sendSuccess(res, result);
@@ -204,7 +201,6 @@ exports.downloadExcel = async (req, res) => {
 
 //CREATE PRODUCT
 exports.add = (req, res, next) => {
-  console.log("ADDING PRODDUCTSSSSSSSSSSSSSSSSSS");
   Delivery.create(req.body, function (err, delivery) {
     if (err) {
       return sendError(res, err, 'Add delivery failed')

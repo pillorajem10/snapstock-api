@@ -18,8 +18,6 @@ exports.list = (req, res, next) => {
   if (token) {
     const { pageIndex, pageSize, sort_by, sort_direction, name, category } = req.query;
 
-    console.log("REQ QUERYY", req.query);
-
     const page = pageIndex;
     const limit = pageSize;
     const sortDirection = sort_direction ? sort_direction.toLowerCase() : undefined;
@@ -60,7 +58,6 @@ exports.list = (req, res, next) => {
 
     Product.aggregatePaginate(aggregateQuery, sortPageLimit, (err, result) => {
       if (err) {
-        console.log("ERRoRRRRRRRRRRRRRRRRR", err)
         return sendError(res, err, 'Server Failed');
       } else {
         return sendSuccess(res, result);
@@ -276,7 +273,6 @@ exports.updateById = (req, res, next) => {
         if (err || !updatedProduct) {
           return sendError(res, err, 'Cannot update product');
         } else {
-          console.log("REQ BODYYYYYYYYYYYYYY", req.body);
           return sendSuccess(res, updatedProduct, 'Product updated successfully');
         }
       }
@@ -313,7 +309,6 @@ exports.deleteById = (req, res, next) => {
 exports.addQuantityOfProds = (req, res, next) => {
   /*let token = getToken(req.headers);
   if (token) {
-    console.log("TOKEN???", token)
     Product.findById(req.params.id, function (err, prod) {
       if (err || !prod) {
         return sendError(res, err, 'Cannot get product')
@@ -327,7 +322,6 @@ exports.addQuantityOfProds = (req, res, next) => {
   } else {
     return sendErrorUnauthorized(res, "", "Please login first.")
   }*/
-  console.log("GETTING THIS FUNCTION?????????? ADDING QUANTITY")
   Product.findById(req.params.id, function (err, prod) {
     if (err || !prod) {
       return sendError(res, err, 'Cannot get product')

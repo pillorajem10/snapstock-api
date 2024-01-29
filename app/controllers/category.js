@@ -9,7 +9,6 @@ exports.list = (req, res, next) => {
   if (token) {
     const { pageIndex, pageSize, sort_by, sort_direction, name } = req.query;
 
-    console.log("REQ QUERYY", req.query);
 
     const page = pageIndex;
     const limit = pageSize;
@@ -45,7 +44,6 @@ exports.list = (req, res, next) => {
 
     Category.aggregatePaginate(aggregateQuery, sortPageLimit, (err, result) => {
       if (err) {
-        console.log("ERRoRRRRRRRRRRRRRRRRR", err)
         return sendError(res, err, 'Server Failed');
       } else {
         return sendSuccess(res, result);
@@ -66,7 +64,6 @@ exports.list = (req, res, next) => {
 
 //CREATE PRODUCT
 exports.add = (req, res, next) => {
-  console.log('CATEGORY ADD');
   /*let token = getToken(req.headers);
   if (token) {
     Category.create(req.body, function (err, cat) {
@@ -132,7 +129,6 @@ exports.updateById = (req, res, next) => {
         if (err || !updatedCategory) {
           return sendError(res, err, 'Cannot update category');
         } else {
-          console.log("REQ BODYYYYYYYYYYYYYY", req.body);
           return sendSuccess(res, updatedCategory);
         }
       }

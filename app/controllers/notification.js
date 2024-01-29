@@ -11,7 +11,6 @@ exports.list = (req, res, next) => {
   if (token) {
     const { pageIndex, pageSize, sort_by, sort_direction, name, category } = req.query;
 
-    console.log("REQ QUERYY", req.query);
 
     const page = pageIndex;
     const limit = pageSize;
@@ -53,7 +52,6 @@ exports.list = (req, res, next) => {
 
     Notification.aggregatePaginate(aggregateQuery, sortPageLimit, (err, result) => {
       if (err) {
-        console.log("ERRoRRRRRRRRRRRRRRRRR", err)
         return sendError(res, err, 'Server Failed');
       } else {
         return sendSuccess(res, result);

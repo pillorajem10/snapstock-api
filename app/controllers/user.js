@@ -20,7 +20,7 @@ const frontEndUrl = process.env.SERVER === 'LIVE' ? 'https://snapstock.site' : '
 exports.list = (req, res) => {
   const { pageIndex, pageSize, username } = req.query;
 
-  console.log("REQ QUERYY", req.query);
+  // console.log("REQ QUERYY", req.query);
 
   const page = pageIndex;
   const limit = pageSize;
@@ -42,7 +42,7 @@ exports.list = (req, res) => {
 
 
 
-  console.log("[[[[FILTER FIELDSSSSSSSSS]]]]", userFieldsFilter)
+  // console.log("[[[[FILTER FIELDSSSSSSSSS]]]]", userFieldsFilter)
 
   // Will remove a key if that key is undefined
   Object.keys(userFieldsFilter).forEach(key => userFieldsFilter[key] === undefined && delete userFieldsFilter[key]);
@@ -61,7 +61,7 @@ exports.list = (req, res) => {
 
   User.aggregatePaginate(aggregateQuery, sortPageLimit, (err, result) => {
     if (err) {
-      console.log("ERRoRRRRRRRRRRRRRRRRR", err)
+      // console.log("ERRoRRRRRRRRRRRRRRRRR", err)
       return sendError(res, err, 'Server Failed');
     } else {
       return sendSuccess(res, result);
@@ -73,7 +73,7 @@ exports.list = (req, res) => {
 
 
 const sendVerificationEmail = async (user) => {
-  console.log('FRONTEND URL', frontEndUrl);
+  // console.log('FRONTEND URL', frontEndUrl);
   const token = jwt.sign({ userId: user._id }, secretKey, { expiresIn: '1w' });
 
   user.verificationToken = token;
@@ -137,13 +137,13 @@ const sendVerificationEmail = async (user) => {
     if (error) {
         console.error('Error:', error);
     } else {
-        console.log('Email sent: ' + info.response);
+        // console.log('Email sent: ' + info.response);
     }
   });;
 };
 
 const sendResetPasswordEmail = async (user, token) => {
-  console.log('FRONT URL', frontEndUrl);
+  // console.log('FRONT URL', frontEndUrl);
   const resetPasswordLink = `${frontEndUrl}/changepassword/${token}`;
   const transporter = nodemailer.createTransport({
     service: 'gmail',
@@ -202,13 +202,13 @@ const sendResetPasswordEmail = async (user, token) => {
     if (error) {
         console.error('Error:', error);
     } else {
-        console.log('Email sent: ' + info.response);
+        // console.log('Email sent: ' + info.response);
     }
   });;
 };
 
 const sendVerificationEmailForEmployeeUser = async (emailNeeds) => {
-  console.log('FRONTEND URL', frontEndUrl);
+  // console.log('FRONTEND URL', frontEndUrl);
   const token = jwt.sign({ userId: emailNeeds.user._id }, secretKey, { expiresIn: '1w' });
 
   emailNeeds.user.verificationToken = token;
@@ -274,7 +274,7 @@ const sendVerificationEmailForEmployeeUser = async (emailNeeds) => {
     if (error) {
         console.error('Error:', error);
     } else {
-        console.log('Email sent: ' + info.response);
+        // console.log('Email sent: ' + info.response);
     }
 });;
 };
@@ -291,14 +291,14 @@ exports.add = async (req, res) => {
     category
   } = req.body;
 
-  console.log('REQ BODY REGISTER', req.body);
+  // console.log('REQ BODY REGISTER', req.body);
 
   if (username && password && repassword && email && fname && lname && category) {
     if (password === repassword) {
       // Extract the reCAPTCHA response from the request body
       const recaptchaValue = req.body['g-recaptcha-response'];
 
-      console.log('ReCAPTCHA VALUE', recaptchaValue);
+      // console.log('ReCAPTCHA VALUE', recaptchaValue);
 
       if (!recaptchaValue) {
         return sendError(res, '', 'Please answer reCAPTCHA.');
@@ -312,7 +312,7 @@ exports.add = async (req, res) => {
           success
         } = response.data;
 
-        console.log('Google reCAPTCHA Response:', response.data);
+        // console.log('Google reCAPTCHA Response:', response.data);
 
         if (success) {
           // Continue with the user registration process
@@ -323,10 +323,10 @@ exports.add = async (req, res) => {
 
           Category.create(req.body, (err, cat) => {
             const capitalizedFname = capitalizeFirstLetter(req.body.name);
-            console.log('CATEGORY NAMEEEEEEEEE', req.body);
+            // console.log('CATEGORY NAMEEEEEEEEE', req.body);
 
             if (err) {
-              console.log('ERROR SA ADD CATEGORY', err);
+              // console.log('ERROR SA ADD CATEGORY', err);
               return sendError(res, err, 'Add category failed', 400, 101, 'Category');
             }
 
