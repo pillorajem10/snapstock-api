@@ -5,7 +5,6 @@ const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
 const dotenv = require('dotenv').config();
 const http = require('http');
-const https = require('https');
 const socketIO = require('socket.io');
 
 // ...
@@ -13,7 +12,8 @@ const socketIO = require('socket.io');
 const app = express();
 const port = process.env.SERVER === 'LIVE' ? 3074 : 4000;
 const frontEndUrl = process.env.SERVER === 'LIVE' ? 'https://snapstock.site' : 'http://localhost:3000';
-const server = process.env.SERVER === 'LIVE' ? https.createServer(app) : http.createServer(app);
+const wellSecured = process.env.SERVER === 'LIVE' ? true : false;
+const server = http.createServer(app);
 
 
 
@@ -52,11 +52,11 @@ connection.once('open', () => {
 // SOCKET IO
 const io = socketIO(server, {
   cors: {
-    origin: 'https://snapstock.site',
+    origin: frontEndUrl,
     methods: ['GET', 'POST'],
     credentials: true,
   },
-  pingTimeout: 30000,
+  secure: true
 });
 
 io.on('connection', (socket) => {
