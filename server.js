@@ -51,7 +51,7 @@ connection.once('open', () => {
 // SOCKET IO
 const io = socketIO(server, {
   cors: {
-    origin: frontEndUrl,
+    origin: 'https://snapstock.site',
     methods: ['GET', 'POST'],
     credentials: true,
   },
