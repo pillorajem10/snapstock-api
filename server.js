@@ -55,6 +55,7 @@ const io = socketIO(server, {
     methods: ['GET', 'POST'],
     credentials: true,
   },
+  pingTimeout: 30000,
 });
 
 io.on('connection', (socket) => {

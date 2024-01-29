@@ -314,7 +314,13 @@ exports.add = (req, res, io) => {
         notification.save();
 
         if (io) {
-          io.to(decodedToken.user.category).emit('newOrder', `${decodedToken.user.fname} added an order`);
+          io.to(decodedToken.user.category).emit('newOrder', `${decodedToken.user.fname} added an order`, (error) => {
+            if (error) {
+                console.error('Emit failed:', error);
+            } else {
+                console.log('Emit successful');
+            }
+          });
         }
 
         return sendSuccess(res, order);
