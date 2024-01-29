@@ -62,10 +62,23 @@ io.on('connection', (socket) => {
   // console.log('A user connected');
 
   // Handle join room event
-  socket.on('joinRoom', (category) => {
+  socket.on('joinRoom', (category, callback) => {
     console.log('ROOM: ', category);
-    socket.join(category);
+
+    // Attempt to join the room
+    socket.join(category, (error) => {
+      if (error) {
+        console.error(`Failed to join room ${category}:`, error);
+        // Send an acknowledgment to the client indicating failure
+        callback({ success: false, error: `Failed to join room ${category}` });
+      } else {
+        console.log(`Successfully joined room ${category}`);
+        // Send an acknowledgment to the client indicating success
+        callback({ success: true, message: `Successfully joined room ${category}` });
+      }
+    });
   });
+
 
   // Handle disconnect event
   socket.on('disconnect', () => {
