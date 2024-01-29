@@ -5,6 +5,7 @@ const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
 const dotenv = require('dotenv').config();
 const http = require('http');
+const https = require('https');
 const socketIO = require('socket.io');
 
 // ...
@@ -12,7 +13,7 @@ const socketIO = require('socket.io');
 const app = express();
 const port = process.env.SERVER === 'LIVE' ? 3074 : 4000;
 const frontEndUrl = process.env.SERVER === 'LIVE' ? 'https://snapstock.site' : 'http://localhost:3000';
-const server = http.createServer(app);
+const server = process.env.SERVER === 'LIVE' ? https.createServer(app) : http.createServer(app);
 
 
 
