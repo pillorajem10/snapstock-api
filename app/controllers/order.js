@@ -361,11 +361,13 @@ exports.add = (req, res, io) => {
       } else {
         const convertedDate = currentDate.toLocaleString('en-US', { timeZone: 'Asia/Manila' });
 
-        const month = currentDate.getMonth() + 1; // getMonth is zero-based
-        const date = currentDate.getDate();
-        const year = currentDate.getFullYear();
+        const convertedDateUsingMoment = convertMomentWithFormat(convertedDate);
 
-        console.log('TIME CREATED', convertedDate);
+        const month = +convertedDateUsingMoment.split('/')[0];
+        const date = +convertedDateUsingMoment.split('/')[1];
+        const year = +convertedDateUsingMoment.split('/')[2];
+
+        console.log('TIME CREATED', convertedDateUsingMoment);
         console.log('TIME MONTH', month);
         console.log('TIME DATE', date);
         console.log('TIME YEAR', year);
