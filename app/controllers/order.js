@@ -367,6 +367,7 @@ exports.add = (req, res, io) => {
         const date = +convertedDateUsingMoment.split('/')[1];
         const year = +convertedDateUsingMoment.split('/')[2];
 
+        console.log('TIME IN SERVER', convertMomentWithFormat(order.createdAt));
         console.log('TIME CREATED', convertedDateUsingMoment);
         console.log('TIME MONTH', month);
         console.log('TIME DATE', date);
