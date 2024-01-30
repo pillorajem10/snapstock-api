@@ -7,24 +7,33 @@ const path = require('path');
 const base64Img = require('base64-img');
 const excel = require('exceljs');
 const numeral = require('numeral');
+const PDFDocument = require("pdfkit");
+const pdf = require("html-pdf");
 
-
-const { sendError, sendSuccess, getToken, sendErrorUnauthorized, formatPriceX } = require ('../utils/methods');
-
+const {
+  sendError,
+  sendSuccess,
+  getToken,
+  sendErrorUnauthorized,
+  formatPriceX,
+} = require("../utils/methods");
 
 // LIST ALL PRODUCTS
 exports.list = (req, res, next) => {
   let token = getToken(req.headers);
   if (token) {
-    const { pageIndex, pageSize, sort_by, sort_direction, name, category } = req.query;
+    const { pageIndex, pageSize, sort_by, sort_direction, name, category } =
+      req.query;
 
     const page = pageIndex;
     const limit = pageSize;
-    const sortDirection = sort_direction ? sort_direction.toLowerCase() : undefined;
+    const sortDirection = sort_direction
+      ? sort_direction.toLowerCase()
+      : undefined;
 
     let sortPageLimit = {
       page,
-      limit
+      limit,
     };
 
     if (sort_by && sortDirection) {
@@ -35,19 +44,24 @@ exports.list = (req, res, next) => {
       };
     }
 
-    let categIds = req.query.category && req.query.category.split(',').map(function(categ) {
-      return mongoose.Types.ObjectId(categ);
-    });
+    let categIds =
+      req.query.category &&
+      req.query.category.split(",").map(function (categ) {
+        return mongoose.Types.ObjectId(categ);
+      });
 
     const productFieldsFilter = {
       stock: req.query.minimumPrice,
-      name: name ? { $regex: name, $options: 'i' } : undefined,
+      name: name ? { $regex: name, $options: "i" } : undefined,
       category: req.query.category ? { $in: categIds } : undefined,
     };
 
-
     // Will remove a key if that key is undefined
-    Object.keys(productFieldsFilter).forEach(key => productFieldsFilter[key] === undefined && delete productFieldsFilter[key]);
+    Object.keys(productFieldsFilter).forEach(
+      (key) =>
+        productFieldsFilter[key] === undefined &&
+        delete productFieldsFilter[key]
+    );
 
     const filterOptions = [
       { $match: productFieldsFilter },
@@ -58,18 +72,15 @@ exports.list = (req, res, next) => {
 
     Product.aggregatePaginate(aggregateQuery, sortPageLimit, (err, result) => {
       if (err) {
-        return sendError(res, err, 'Server Failed');
+        return sendError(res, err, "Server Failed");
       } else {
         return sendSuccess(res, result);
       }
     });
   } else {
-    return sendErrorUnauthorized(res, "", "Please login first.")
+    return sendErrorUnauthorized(res, "", "Please login first.");
   }
-
 };
-
-
 
 exports.downloadExcel = async (req, res) => {
   const { productList, fomattedDateNow } = req.body;
@@ -77,75 +88,84 @@ exports.downloadExcel = async (req, res) => {
   try {
     // Create a new workbook
     const workbook = new excel.Workbook();
-    const worksheet = workbook.addWorksheet('Products');
+    const worksheet = workbook.addWorksheet("Products");
 
     // Add an image to the worksheet
-    const imageLink = path.join(__dirname, '../templates/snapstocklogo.png');
+    const imageLink = path.join(__dirname, "../templates/snapstocklogo.png");
     const imageId = workbook.addImage({
       filename: imageLink,
-      extension: 'png',
+      extension: "png",
     });
-    worksheet.addImage(imageId, 'A1:A4'); // Adjust the cell range as needed
+    worksheet.addImage(imageId, "A1:A4"); // Adjust the cell range as needed
 
-    const titileRow =worksheet.addRow(['Products report:', '', fomattedDateNow]);
+    const titileRow = worksheet.addRow([
+      "Products report:",
+      "",
+      fomattedDateNow,
+    ]);
     titileRow.font = { bold: true, size: 14 };
-    titileRow.getCell(3).alignment = { horizontal: 'right' };
+    titileRow.getCell(3).alignment = { horizontal: "right" };
     worksheet.addRow([]);
 
     // Add headers to the worksheet with bold font
-    const headerRow = worksheet.addRow(['Name', 'Stock', 'Price']);
+    const headerRow = worksheet.addRow(["Name", "Stock", "Price"]);
     headerRow.font = { bold: true };
-    headerRow.getCell(3).alignment = { horizontal: 'right' };
+    headerRow.getCell(3).alignment = { horizontal: "right" };
 
     // Add data to the worksheet
     productList.forEach((product) => {
-      const { name, stocks, price} = product;
-      const formattedPrice = new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(price);
+      const { name, stocks, price } = product;
+      const formattedPrice = new Intl.NumberFormat("en-PH", {
+        style: "currency",
+        currency: "PHP",
+      }).format(price);
 
       // Add rows with specified alignment for "Stock" and "Price" columns
       const row = worksheet.addRow([name, stocks, formattedPrice]);
-      row.getCell(2).alignment = { horizontal: 'left' };  // Align "Stock" to the left
-      row.getCell(3).alignment = { horizontal: 'right' }; // Align "Price" to the right
+      row.getCell(2).alignment = { horizontal: "left" }; // Align "Stock" to the left
+      row.getCell(3).alignment = { horizontal: "right" }; // Align "Price" to the right
     });
-
 
     // Adjust the width of the columns
     worksheet.columns.forEach((column) => {
       column.width = 50; // Adjust the width as needed
     });
 
-
     // Set response headers
-    res.setHeader('Content-Disposition', `attachment; filename=Product_Inventory_Report_${fomattedDateNow}.xlsx`);
-    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename=Product_Inventory_Report_${fomattedDateNow}.xlsx`
+    );
+    res.setHeader(
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    );
 
     // Send the workbook as the response
     await workbook.xlsx.write(res);
     res.end();
   } catch (error) {
     // Handle errors
-    console.error('Error generating Excel report:', error);
+    console.error("Error generating Excel report:", error);
     res.status(500).json({
       success: false,
       error,
-      message: 'Error generating Excel report.',
+      message: "Error generating Excel report.",
     });
   }
 };
 
-
-
 exports.downloadPDF = async (req, res, next) => {
   const { productList, fomattedDateNow } = req.body;
 
-  const formattedProductList = productList.map(product => ({
+  const formattedProductList = productList.map((product) => ({
     ...product,
     price: formatPriceX(product.price), // Format total with peso sign
   }));
 
   try {
     // Construct the full path to the image
-    const imagePath = path.join(__dirname, '../templates/snapstocklogo.png');
+    const imagePath = path.join(__dirname, "../templates/snapstocklogo.png");
 
     // Convert image to base64
     const logoBase64 = await new Promise((resolve, reject) => {
@@ -159,10 +179,13 @@ exports.downloadPDF = async (req, res, next) => {
     });
 
     // Construct the full path to the HTML template
-    const templatePath = path.join(__dirname, '../templates/productsPdfTemplete.html');
+    const templatePath = path.join(
+      __dirname,
+      "../templates/productsPdfTemplete.html"
+    );
 
     // Read the HTML template
-    const templateHtml = fs.readFileSync(templatePath, 'utf-8');
+    const templateHtml = fs.readFileSync(templatePath, "utf-8");
 
     // Compile the HTML template using Handlebars
     const template = handlebars.compile(templateHtml);
@@ -174,6 +197,7 @@ exports.downloadPDF = async (req, res, next) => {
       logoBase64,
     });
 
+    /*
     // Launch a headless browser
     const browser = await puppeteer.launch({
       headless: 'new',
@@ -194,14 +218,41 @@ exports.downloadPDF = async (req, res, next) => {
     res.setHeader('Content-Disposition', `attachment; filename=Product_Inventory_Report_${fomattedDateNow}.pdf`);
     res.setHeader('Content-Type', 'application/pdf');
     res.status(200).send(pdfBuffer);
+    */
 
+    // Options for html-pdf
+    const pdfOptions = {
+      format: "Letter",
+      border: {
+        top: "20px",
+        right: "20px",
+        bottom: "20px",
+        left: "20px",
+      },
+    };
+
+    // Generate PDF using html-pdf
+    pdf.create(html, pdfOptions).toBuffer((err, buffer) => {
+      if (err) {
+        console.error(err);
+        res.status(500).send("Internal Server Error");
+      } else {
+        // Respond with success
+        res.setHeader(
+          "Content-Disposition",
+          `attachment; filename=Product_Inventory_Report_${fomattedDateNow}.pdf`
+        );
+        res.setHeader("Content-Type", "application/pdf");
+        res.status(200).send(buffer);
+      }
+    });
   } catch (error) {
     // Handle errors
-    console.error('Error generating PDF:', error);
+    console.error("Error generating PDF:", error);
     res.status(500).json({
       success: false,
       error,
-      message: 'Error generating PDF report.',
+      message: "Error generating PDF report.",
     });
   }
 };
