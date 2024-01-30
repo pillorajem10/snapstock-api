@@ -6,8 +6,7 @@ const handlebars = require('handlebars');
 const path = require('path');
 const base64Img = require('base64-img');
 const excel = require('exceljs');
-const numeral = require('numeral');
-const PDFDocument = require("pdfkit");
+const numeral = require("numeral");
 const pdf = require("html-pdf");
 
 const {

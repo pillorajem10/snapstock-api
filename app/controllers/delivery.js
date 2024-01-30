@@ -7,72 +7,87 @@ const path = require('path');
 const base64Img = require('base64-img');
 const excel = require('exceljs');
 const numeral = require('numeral');
+const pdf = require("html-pdf");
 
-const { sendError, sendSuccess, convertMomentWithFormat, getToken, sendErrorUnauthorized } = require ('../utils/methods');
+const {
+  sendError,
+  sendSuccess,
+  convertMomentWithFormat,
+  getToken,
+  sendErrorUnauthorized,
+} = require("../utils/methods");
 
 //LIST ALL PRODUCTS
 exports.list = (req, res, next) => {
-    const { pageIndex, pageSize, sort_by, sort_direction, productName } = req.query;
+  const { pageIndex, pageSize, sort_by, sort_direction, productName } =
+    req.query;
 
-    const page = pageIndex;
-    const limit = pageSize;
-    const sortDirection = sort_direction ? sort_direction.toLowerCase() : undefined;
+  const page = pageIndex;
+  const limit = pageSize;
+  const sortDirection = sort_direction
+    ? sort_direction.toLowerCase()
+    : undefined;
 
-    let sortPageLimit = {
+  let sortPageLimit = {
+    page,
+    limit,
+  };
+
+  if (sort_by && sortDirection) {
+    sortPageLimit = {
+      sort: { [sort_by]: sortDirection },
       page,
-      limit
+      limit,
     };
+  }
 
-    if (sort_by && sortDirection) {
-      sortPageLimit = {
-        sort: { [sort_by] : sortDirection },
-        page,
-        limit,
-      };
+  const deliveryFieldsFilter = {
+    stock: req.query.minimumPrice,
+    monthDelivered: req.query.monthDelivered
+      ? +req.query.monthDelivered
+      : undefined,
+    dateDelivered: req.query.dateDelivered
+      ? +req.query.dateDelivered
+      : undefined,
+    yearDelivered: req.query.yearDelivered
+      ? +req.query.yearDelivered
+      : undefined,
+    // $text: req.query.productName ? { $search: req.query.productName } : undefined,
+  };
+
+  if (productName) {
+    deliveryFieldsFilter.productName = { $regex: productName, $options: "i" }; // Case-insensitive regex search
+  }
+
+  // Will remove a key if that key is undefined
+  Object.keys(deliveryFieldsFilter).forEach(
+    (key) =>
+      deliveryFieldsFilter[key] === undefined &&
+      delete deliveryFieldsFilter[key]
+  );
+
+  const filterOptions = [
+    { $match: deliveryFieldsFilter },
+    { $sort: { createdAt: -1 } },
+  ];
+
+  const aggregateQuery = Delivery.aggregate(filterOptions);
+
+  Delivery.aggregatePaginate(aggregateQuery, sortPageLimit, (err, result) => {
+    if (err) {
+      return sendError(res, err, "Server Failed");
+    } else {
+      return sendSuccess(res, result);
     }
-
-    const deliveryFieldsFilter = {
-      stock : req.query.minimumPrice,
-      monthDelivered: req.query.monthDelivered ? +req.query.monthDelivered : undefined,
-      dateDelivered: req.query.dateDelivered ? +req.query.dateDelivered : undefined,
-      yearDelivered: req.query.yearDelivered ? +req.query.yearDelivered : undefined,
-      // $text: req.query.productName ? { $search: req.query.productName } : undefined,
-    };
-
-    if (productName) {
-      deliveryFieldsFilter.productName = { $regex: productName, $options: 'i' }; // Case-insensitive regex search
-    }
-
-    // Will remove a key if that key is undefined
-    Object.keys(deliveryFieldsFilter).forEach(key => deliveryFieldsFilter[key] === undefined && delete deliveryFieldsFilter[key]);
-
-    const filterOptions = [
-      { $match: deliveryFieldsFilter },
-      { $sort: { createdAt: -1 } },
-    ];
-
-    const aggregateQuery = Delivery.aggregate(filterOptions);
-
-    Delivery.aggregatePaginate(aggregateQuery,
-      sortPageLimit,
-      (err, result) => {
-      if (err) {
-        return sendError(res, err, 'Server Failed');
-      } else {
-        return sendSuccess(res, result);
-      }
-    });
+  });
 };
-
-
 
 exports.downloadPDF = async (req, res, next) => {
   const { orderList, fomattedDateNow } = req.body;
 
-
   try {
     // Construct the full path to the image
-    const imagePath = path.join(__dirname, '../templates/snapstocklogo.png');
+    const imagePath = path.join(__dirname, "../templates/snapstocklogo.png");
 
     // Convert image to base64
     const logoBase64 = await new Promise((resolve, reject) => {
@@ -86,10 +101,13 @@ exports.downloadPDF = async (req, res, next) => {
     });
 
     // Construct the full path to the HTML template
-    const templatePath = path.join(__dirname, '../templates/deliveryPdfTemplate.html');
+    const templatePath = path.join(
+      __dirname,
+      "../templates/deliveryPdfTemplate.html"
+    );
 
     // Read the HTML template
-    const templateHtml = fs.readFileSync(templatePath, 'utf-8');
+    const templateHtml = fs.readFileSync(templatePath, "utf-8");
 
     // Compile the HTML template using Handlebars
     const template = handlebars.compile(templateHtml);
@@ -101,6 +119,7 @@ exports.downloadPDF = async (req, res, next) => {
       logoBase64,
     });
 
+    /*
     // Launch a headless browser
     const browser = await puppeteer.launch({
       headless: 'new',
@@ -123,14 +142,41 @@ exports.downloadPDF = async (req, res, next) => {
     res.setHeader('Content-Disposition', `attachment; filename=Res-stock_Inventory_Report_${fomattedDateNow}.pdf`);
     res.setHeader('Content-Type', 'application/pdf');
     res.status(200).send(pdfBuffer);
+    */
 
+    // Options for html-pdf
+    const pdfOptions = {
+      format: "Letter",
+      border: {
+        top: "20px",
+        right: "20px",
+        bottom: "20px",
+        left: "20px",
+      },
+    };
+
+    // Generate PDF using html-pdf
+    pdf.create(html, pdfOptions).toBuffer((err, buffer) => {
+      if (err) {
+        console.error(err);
+        res.status(500).send("Internal Server Error");
+      } else {
+        // Respond with success
+        res.setHeader(
+          "Content-Disposition",
+          `attachment; filename=Res-stock_Inventory_Report_${fomattedDateNow}.pdf`
+        );
+        res.setHeader("Content-Type", "application/pdf");
+        res.status(200).send(buffer);
+      }
+    });
   } catch (error) {
     // Handle errors
-    console.error('Error generating PDF:', error);
+    console.error("Error generating PDF:", error);
     res.status(500).json({
       success: false,
       error,
-      message: 'Error generating PDF report.',
+      message: "Error generating PDF report.",
     });
   }
 };

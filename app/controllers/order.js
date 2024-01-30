@@ -11,69 +11,86 @@ const base64Img = require('base64-img');
 const excel = require('exceljs');
 const numeral = require('numeral');
 const jwt = require('jsonwebtoken');
+const pdf = require("html-pdf");
 
-const { sendError, sendSuccess, convertMomentWithFormat, getToken, sendErrorUnauthorized, formatPriceX } = require ('../utils/methods');
+const {
+  sendError,
+  sendSuccess,
+  convertMomentWithFormat,
+  getToken,
+  sendErrorUnauthorized,
+  formatPriceX,
+} = require("../utils/methods");
 
 //LIST ALL ORDERS
 exports.list = (req, res, next) => {
-    let token = getToken(req.headers);
-    if (token) {
-      const { pageIndex, pageSize, sort_by, sort_direction, customerName } = req.query;
-      const page = pageIndex;
-      const limit = pageSize;
-      const sortDirection = sort_direction ? sort_direction.toLowerCase() : undefined;
+  let token = getToken(req.headers);
+  if (token) {
+    const { pageIndex, pageSize, sort_by, sort_direction, customerName } =
+      req.query;
+    const page = pageIndex;
+    const limit = pageSize;
+    const sortDirection = sort_direction
+      ? sort_direction.toLowerCase()
+      : undefined;
 
-      let sortPageLimit = {
+    let sortPageLimit = {
+      page,
+      limit,
+    };
+
+    if (sort_by && sortDirection) {
+      sortPageLimit = {
+        sort: { [sort_by]: sortDirection },
         page,
-        limit
+        limit,
       };
+    }
 
-      if (sort_by && sortDirection) {
-        sortPageLimit = {
-          sort: { [sort_by] : sortDirection },
-          page,
-          limit,
-        };
-      }
-
-      let categIds = req.query.category && req.query.category.split(',').map(function(categ) {
+    let categIds =
+      req.query.category &&
+      req.query.category.split(",").map(function (categ) {
         return mongoose.Types.ObjectId(categ);
       });
 
-      const orderFieldsFilter = {
-        stock: req.query.minimumStock && req.query.maximumStock ? { $gte: +req.query.minimumStock, $lte: +req.query.maximumStock } : undefined,
-        monthOrdered: req.query.monthOrdered ? +req.query.monthOrdered : undefined,
-        dateOrdered: req.query.dateOrdered ? +req.query.dateOrdered : undefined,
-        yearOrdered: req.query.yearOrdered ? +req.query.yearOrdered : undefined,
-        category: req.query.category ? { $in: categIds } : undefined,
-        // $text: req.query.customerName ? { $search: req.query.customerName } : undefined,
-      };
+    const orderFieldsFilter = {
+      stock:
+        req.query.minimumStock && req.query.maximumStock
+          ? { $gte: +req.query.minimumStock, $lte: +req.query.maximumStock }
+          : undefined,
+      monthOrdered: req.query.monthOrdered
+        ? +req.query.monthOrdered
+        : undefined,
+      dateOrdered: req.query.dateOrdered ? +req.query.dateOrdered : undefined,
+      yearOrdered: req.query.yearOrdered ? +req.query.yearOrdered : undefined,
+      category: req.query.category ? { $in: categIds } : undefined,
+      // $text: req.query.customerName ? { $search: req.query.customerName } : undefined,
+    };
 
-      if (customerName) {
-        orderFieldsFilter.customerName = { $regex: customerName, $options: 'i' }; // Case-insensitive regex search
-      }
-
-      // Will remove a key if that key is undefined
-      Object.keys(orderFieldsFilter).forEach(key => orderFieldsFilter[key] === undefined && delete orderFieldsFilter[key]);
-
-      const filterOptions = [
-        { $match: orderFieldsFilter },
-      ];
-
-      const aggregateQuery = Order.aggregate(filterOptions);
-
-      Order.aggregatePaginate(aggregateQuery,
-        sortPageLimit,
-        (err, result) => {
-        if (err) {
-          return sendError(res, err, 'Server Failed');
-        } else {
-          return sendSuccess(res, result);
-        }
-      });
-    } else {
-      return sendErrorUnauthorized(res, "", "Please login first.")
+    if (customerName) {
+      orderFieldsFilter.customerName = { $regex: customerName, $options: "i" }; // Case-insensitive regex search
     }
+
+    // Will remove a key if that key is undefined
+    Object.keys(orderFieldsFilter).forEach(
+      (key) =>
+        orderFieldsFilter[key] === undefined && delete orderFieldsFilter[key]
+    );
+
+    const filterOptions = [{ $match: orderFieldsFilter }];
+
+    const aggregateQuery = Order.aggregate(filterOptions);
+
+    Order.aggregatePaginate(aggregateQuery, sortPageLimit, (err, result) => {
+      if (err) {
+        return sendError(res, err, "Server Failed");
+      } else {
+        return sendSuccess(res, result);
+      }
+    });
+  } else {
+    return sendErrorUnauthorized(res, "", "Please login first.");
+  }
 };
 
 exports.downloadExcel = async (req, res) => {
@@ -82,28 +99,44 @@ exports.downloadExcel = async (req, res) => {
   try {
     // Create a new workbook
     const workbook = new excel.Workbook();
-    const worksheet = workbook.addWorksheet('Orders');
+    const worksheet = workbook.addWorksheet("Orders");
 
     // Add an image to the worksheet
-    const imageLink = path.join(__dirname, '../templates/snapstocklogo.png');
+    const imageLink = path.join(__dirname, "../templates/snapstocklogo.png");
     const imageId = workbook.addImage({
       filename: imageLink,
-      extension: 'png',
+      extension: "png",
     });
-    worksheet.addImage(imageId, 'A1:A4'); // Adjust the cell range as needed
+    worksheet.addImage(imageId, "A1:A4"); // Adjust the cell range as needed
 
-    worksheet.addRow(['Orders report:', '', fomattedDateNow]).font = { bold: true, size: 14 };
+    worksheet.addRow(["Orders report:", "", fomattedDateNow]).font = {
+      bold: true,
+      size: 14,
+    };
     worksheet.addRow([]);
 
     // Add headers to the worksheet with bold font
-    const headerRow = worksheet.addRow(['Ordered By', 'Date Ordered', 'Total']);
+    const headerRow = worksheet.addRow(["Ordered By", "Date Ordered", "Total"]);
     headerRow.font = { bold: true };
 
     // Add data to the worksheet
     orderList.forEach((order) => {
-      const { customerName, monthOrdered, dateOrdered, yearOrdered, totalPrice } = order;
-      const formattedTotalPrice = new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(totalPrice);
-      worksheet.addRow([customerName, `${monthOrdered}/${dateOrdered}/${yearOrdered}`, formattedTotalPrice]);
+      const {
+        customerName,
+        monthOrdered,
+        dateOrdered,
+        yearOrdered,
+        totalPrice,
+      } = order;
+      const formattedTotalPrice = new Intl.NumberFormat("en-PH", {
+        style: "currency",
+        currency: "PHP",
+      }).format(totalPrice);
+      worksheet.addRow([
+        customerName,
+        `${monthOrdered}/${dateOrdered}/${yearOrdered}`,
+        formattedTotalPrice,
+      ]);
     });
 
     // Skip two rows before adding totalOrder
@@ -111,10 +144,10 @@ exports.downloadExcel = async (req, res) => {
     worksheet.addRow([]);
 
     // Add totalOrder to the worksheet with bold font, aligned to the right, and red font color
-    const totalRow = worksheet.addRow(['Total for the day:', '', totalOrder]);
-    totalRow.font = { bold: true, color: { argb: 'FF0000' } }; // Set font color to red
-    totalRow.getCell(1).alignment = { horizontal: 'left' }; // Align label to the left
-    totalRow.getCell(3).alignment = { horizontal: 'right' }; // Align total order to the right
+    const totalRow = worksheet.addRow(["Total for the day:", "", totalOrder]);
+    totalRow.font = { bold: true, color: { argb: "FF0000" } }; // Set font color to red
+    totalRow.getCell(1).alignment = { horizontal: "left" }; // Align label to the left
+    totalRow.getCell(3).alignment = { horizontal: "right" }; // Align total order to the right
 
     // Adjust the width of the columns
     worksheet.columns.forEach((column) => {
@@ -122,11 +155,17 @@ exports.downloadExcel = async (req, res) => {
     });
 
     // Adjust the alignment of the "Total" column to the right
-    worksheet.getColumn(3).alignment = { horizontal: 'right' };
+    worksheet.getColumn(3).alignment = { horizontal: "right" };
 
     // Set response headers
-    res.setHeader('Content-Disposition', `attachment; filename=Orders_Report_${fomattedDateNow}.xlsx`);
-    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename=Orders_Report_${fomattedDateNow}.xlsx`
+    );
+    res.setHeader(
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    );
 
     // Send the workbook as the response
     await workbook.xlsx.write(res);
@@ -136,29 +175,26 @@ exports.downloadExcel = async (req, res) => {
     res.status(500).json({
       success: false,
       error,
-      message: 'Error generating Excel report.',
+      message: "Error generating Excel report.",
     });
   }
 };
-
-
-
 
 exports.downloadPDF = async (req, res, next) => {
   const { orderList, totalOrder, fomattedDateNow } = req.body;
 
   try {
     // Format the "totalPrice" or "total" in each order before passing it to the template
-    const formattedOrderList = orderList.map(order => ({
+    const formattedOrderList = orderList.map((order) => ({
       ...order,
       totalPrice: formatPriceX(order.totalPrice), // Format total with peso sign
     }));
 
     // Format totalOrder with peso sign
-    const formattedTotalOrder = numeral(totalOrder).format('₱0,0.00');
+    const formattedTotalOrder = numeral(totalOrder).format("₱0,0.00");
 
     // Construct the full path to the image
-    const imagePath = path.join(__dirname, '../templates/snapstocklogo.png');
+    const imagePath = path.join(__dirname, "../templates/snapstocklogo.png");
 
     // Convert image to base64
     const logoBase64 = await new Promise((resolve, reject) => {
@@ -172,10 +208,13 @@ exports.downloadPDF = async (req, res, next) => {
     });
 
     // Construct the full path to the HTML template
-    const templatePath = path.join(__dirname, '../templates/ordersPdfTemplate.html');
+    const templatePath = path.join(
+      __dirname,
+      "../templates/ordersPdfTemplate.html"
+    );
 
     // Read the HTML template
-    const templateHtml = fs.readFileSync(templatePath, 'utf-8');
+    const templateHtml = fs.readFileSync(templatePath, "utf-8");
 
     // Compile the HTML template using Handlebars
     const template = handlebars.compile(templateHtml);
@@ -188,6 +227,7 @@ exports.downloadPDF = async (req, res, next) => {
       logoBase64,
     });
 
+    /*
     // Launch a headless browser
     const browser = await puppeteer.launch({
       headless: 'new',
@@ -210,13 +250,40 @@ exports.downloadPDF = async (req, res, next) => {
     res.setHeader('Content-Disposition', `attachment; filename=Orders_Report_${fomattedDateNow}.pdf`);
     res.setHeader('Content-Type', 'application/pdf');
     res.status(200).send(pdfBuffer);
+    */
 
+    // Options for html-pdf
+    const pdfOptions = {
+      format: "Letter",
+      border: {
+        top: "20px",
+        right: "20px",
+        bottom: "20px",
+        left: "20px",
+      },
+    };
+
+    // Generate PDF using html-pdf
+    pdf.create(html, pdfOptions).toBuffer((err, buffer) => {
+      if (err) {
+        console.error(err);
+        res.status(500).send("Internal Server Error");
+      } else {
+        // Respond with success
+        res.setHeader(
+          "Content-Disposition",
+          `attachment; filename=Orders_Report_${fomattedDateNow}.pdf`
+        );
+        res.setHeader("Content-Type", "application/pdf");
+        res.status(200).send(buffer);
+      }
+    });
   } catch (error) {
     // Handle errors
     res.status(500).json({
       success: false,
       error,
-      message: 'Error generating PDF report.',
+      message: "Error generating PDF report.",
     });
   }
 };
