@@ -16,7 +16,6 @@ const pdf = require("html-pdf");
 const {
   sendError,
   sendSuccess,
-  convertMomentWithFormat,
   getToken,
   sendErrorUnauthorized,
   formatPriceX,
@@ -359,19 +358,11 @@ exports.add = (req, res, io) => {
       if (err) {
         return sendError(res, err, 'Add order failed');
       } else {
-        // const convertedDate = currentDate.toLocaleString('en-US', { timeZone: 'Asia/Manila' });
+        const convertedDate = currentDate.toLocaleDateString('en-US', { timeZone: 'Asia/Manila' });
 
-        const convertedDateUsingMoment = convertMomentWithFormat(currentDate);
-
-        const month = +convertedDateUsingMoment.split('/')[0];
-        const date = +convertedDateUsingMoment.split('/')[1];
-        const year = +convertedDateUsingMoment.split('/')[2];
-
-        console.log('TIME IN SERVER', convertMomentWithFormat(order.createdAt));
-        console.log('TIME CREATED', convertedDateUsingMoment);
-        console.log('TIME MONTH', month);
-        console.log('TIME DATE', date);
-        console.log('TIME YEAR', year);
+        const month = +convertedDate.split('/')[0];
+        const date = +convertedDate.split('/')[1];
+        const year = +convertedDate.split('/')[2];
 
         order.monthOrdered = month;
         order.dateOrdered = date;
