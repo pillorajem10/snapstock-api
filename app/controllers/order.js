@@ -359,9 +359,9 @@ exports.add = (req, res, io) => {
       if (err) {
         return sendError(res, err, 'Add order failed');
       } else {
-        const convertedDate = currentDate.toLocaleString('en-US', { timeZone: 'Asia/Manila' });
+        // const convertedDate = currentDate.toLocaleString('en-US', { timeZone: 'Asia/Manila' });
 
-        const convertedDateUsingMoment = convertMomentWithFormat(convertedDate);
+        const convertedDateUsingMoment = convertMomentWithFormat(currentDate);
 
         const month = +convertedDateUsingMoment.split('/')[0];
         const date = +convertedDateUsingMoment.split('/')[1];
