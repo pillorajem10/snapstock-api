@@ -354,15 +354,16 @@ exports.add = (req, res, io) => {
   let token = getToken(req.headers);
   if (token) {
     const decodedToken = jwt.decode(token);
-
+    const currentDate = new Date();
     Order.create(req.body, function (err, order) {
       if (err) {
         return sendError(res, err, 'Add order failed');
       } else {
-        const convertedDate = convertMomentWithFormat(order.createdAt);
-        const month = +convertedDate.split('/')[0];
-        const date = +convertedDate.split('/')[1];
-        const year = +convertedDate.split('/')[2];
+        const convertedDate = currentDate.toLocaleString('en-US', { timeZone: 'Asia/Manila' });
+
+        const month = currentDate.getMonth() + 1; // getMonth is zero-based
+        const date = currentDate.getDate();
+        const year = currentDate.getFullYear();
 
         order.monthOrdered = month;
         order.dateOrdered = date;
