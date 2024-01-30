@@ -365,6 +365,11 @@ exports.add = (req, res, io) => {
         const date = currentDate.getDate();
         const year = currentDate.getFullYear();
 
+        console.log('TIME CREATED', convertedDate);
+        console.log('TIME MONTH', month);
+        console.log('TIME DATE', date);
+        console.log('TIME YEAR', year);
+
         order.monthOrdered = month;
         order.dateOrdered = date;
         order.yearOrdered = year;
