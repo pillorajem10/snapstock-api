@@ -18,8 +18,8 @@ const wellSecured = process.env.SERVER === 'LIVE' ? true : false;
 // const server = http.createServer(app);
 
 const server = process.env.SERVER === 'LIVE' ? https.createServer({
-  key: fs.readFileSync('/etc/letsencrypt/live/snapstock.site/fullchain.pem'),
-  cert: fs.readFileSync('/etc/letsencrypt/live/snapstock.site/privkey.pem'),
+  key: fs.readFileSync(process.env.SSL_KEY),
+  cert: fs.readFileSync(process.env.SSL_CERT),
 }) : http.createServer(app);
 
 //MIDDLEWARES
