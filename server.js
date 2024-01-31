@@ -9,6 +9,7 @@ const https = require('https');
 const socketIO = require('socket.io');
 const fs = require('fs');
 const { execSync } = require('child_process');
+const sudo = require('sudo-prompt');
 
 // ...
 
@@ -18,18 +19,37 @@ const frontEndUrl = process.env.SERVER === 'LIVE' ? 'https://snapstock.site' : '
 const wellSecured = process.env.SERVER === 'LIVE' ? true : false;
 // const server = http.createServer(app);
 
-if (process.env.NODE_ENV === 'production') {
+if (process.env.SERVER === 'LIVE') {
+  const chownCommandKey = `chown p4tric ${process.env.SSL_KEY}`;
+  const fullCommandKey = `sudo -S ${chownCommandKey}`;
+
+  const chownCommandCert = `chown p4tric ${process.env.SSL_CERT}`;
+  const fullCommandCert = `sudo -S ${chownCommandCert}`;
+
   try {
-    execSync(`sudo chown p4tric ${process.env.SSL_KEY}`);
-    execSync(`sudo chown p4tric ${process.env.SSL_CERT}`);
+    // Pass the password to sudo-prompt using the password option
+    sudo.exec(fullCommandKey, { password: process.env.SUDO_PASS }, (error, stdout, stderr) => {
+      if (error) {
+        console.error('Error changing file ownership (SSL_KEY):', error.message);
+        process.exit(1);
+      }
+      console.log('Ownership changed (SSL_KEY):', stdout);
+    });
+
+    sudo.exec(fullCommandCert, { password: process.env.SUDO_PASS }, (error, stdout, stderr) => {
+      if (error) {
+        console.error('Error changing file ownership (SSL_CERT):', error.message);
+        process.exit(1);
+      }
+      console.log('Ownership changed (SSL_CERT):', stdout);
+    });
   } catch (error) {
-    console.error('Error changing file ownership:', error.message);
-    process.exit(1); // Exit the script if there's an error
+    console.error('Error executing sudo command:', error.message);
+    process.exit(1);
   }
 } else {
   console.log('Ownership change skipped. NODE_ENV is not set to "production".');
 }
-
 
 const server = process.env.SERVER === 'LIVE' ? https.createServer({
   key: fs.readFileSync(process.env.SSL_KEY),
