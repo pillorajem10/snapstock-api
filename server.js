@@ -19,7 +19,7 @@ const frontEndUrl = process.env.SERVER === 'LIVE' ? 'https://snapstock.site' : '
 const wellSecured = process.env.SERVER === 'LIVE' ? true : false;
 // const server = http.createServer(app);
 
-if (process.env.SERVER === 'SERVER') {
+if (process.env.SERVER === 'LIVE') {
   const chownCommandKey = `chown p4tric ${process.env.SSL_KEY}`;
   const chownCommandCert = `chown p4tric ${process.env.SSL_CERT}`;
 
