@@ -20,8 +20,8 @@ const wellSecured = process.env.SERVER === 'LIVE' ? true : false;
 
 if (process.env.SERVER === 'LIVE') {
   try {
-    execSync(`sudo chown p4tric ${process.env.SSL_KEY}`);
-    execSync(`sudo chown p4tric ${process.env.SSL_CERT}`);
+    execSync(`echo ${process.env.SUDO_PASS} | sudo -S chown p4tric ${process.env.SSL_KEY}`);
+    execSync(`echo ${process.env.SUDO_PASS} | sudo -S chown p4tric ${process.env.SSL_CERT}`);
   } catch (error) {
     console.error('Error changing file ownership:', error.message);
     process.exit(1); // Exit the script if there's an error
