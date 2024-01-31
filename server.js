@@ -59,6 +59,10 @@ const io = socketIO(server, {
   secure: true
 });
 
+io.on("connect_error", (err) => {
+  console.log(`connect_error due to ${err.message}`);
+});
+
 io.on('connection', (socket) => {
    console.log('A user connected');
 
