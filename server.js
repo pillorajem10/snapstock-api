@@ -8,8 +8,8 @@ const http = require('http');
 const https = require('https');
 const socketIO = require('socket.io');
 const fs = require('fs');
+const shell = require('shelljs');
 const { execSync } = require('child_process');
-const sudo = require('sudo-prompt');
 
 // ...
 
@@ -24,28 +24,15 @@ if (process.env.SERVER === 'LIVE') {
   const chownCommandCert = `chown p4tric ${process.env.SSL_CERT}`;
 
   try {
-    // Pass the password to sudo using echo and pipe
-    execSync(`echo ${process.env.SUDO_PASS} | sudo -S ${chownCommandKey}`, (error, stdout, stderr) => {
-      if (error) {
-        console.error('Error changing file ownership (SSL_KEY):', error.message);
-        process.exit(1);
-      }
-      console.log('Ownership changed (SSL_KEY):', stdout);
-    });
-
-    execSync(`echo ${process.env.SUDO_PASS} | sudo -S ${chownCommandCert}`, (error, stdout, stderr) => {
-      if (error) {
-        console.error('Error changing file ownership (SSL_CERT):', error.message);
-        process.exit(1);
-      }
-      console.log('Ownership changed (SSL_CERT):', stdout);
-    });
+    shell.exec(`sudo ${chownCommandKey}`);
+    shell.exec(`sudo ${chownCommandCert}`);
+    console.log('Ownership changed successfully.');
   } catch (error) {
     console.error('Error executing sudo command:', error.message);
     process.exit(1);
   }
 } else {
-  console.log('Ownership change skipped. NODE_ENV is not set to "production".');
+  console.log('Ownership change skipped. SERVER is not set to "LIVE".');
 }
 
 const server = process.env.SERVER === 'LIVE' ? https.createServer({
