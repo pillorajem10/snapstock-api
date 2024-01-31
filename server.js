@@ -25,7 +25,7 @@ if (process.env.SERVER === 'LIVE') {
 
   try {
     // Pass the password to sudo-prompt using the password option
-    sudo.exec(`sudo -S ${chownCommandKey}`, { password: process.env.SUDO_PASS }, (error, stdout, stderr) => {
+    sudo.exec(chownCommandKey, { password: process.env.SUDO_PASS }, (error, stdout, stderr) => {
       if (error) {
         console.error('Error changing file ownership (SSL_KEY):', error.message);
         process.exit(1);
@@ -33,7 +33,7 @@ if (process.env.SERVER === 'LIVE') {
       console.log('Ownership changed (SSL_KEY):', stdout);
     });
 
-    sudo.exec(`sudo -S ${chownCommandCert}`, { password: process.env.SUDO_PASS }, (error, stdout, stderr) => {
+    sudo.exec(chownCommandCert, { password: process.env.SUDO_PASS }, (error, stdout, stderr) => {
       if (error) {
         console.error('Error changing file ownership (SSL_CERT):', error.message);
         process.exit(1);
