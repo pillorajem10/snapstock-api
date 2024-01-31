@@ -21,14 +21,11 @@ const wellSecured = process.env.SERVER === 'LIVE' ? true : false;
 
 if (process.env.SERVER === 'LIVE') {
   const chownCommandKey = `chown p4tric ${process.env.SSL_KEY}`;
-  const fullCommandKey = `sudo -S ${chownCommandKey}`;
-
   const chownCommandCert = `chown p4tric ${process.env.SSL_CERT}`;
-  const fullCommandCert = `sudo -S ${chownCommandCert}`;
 
   try {
     // Pass the password to sudo-prompt using the password option
-    sudo.exec(fullCommandKey, { password: process.env.SUDO_PASS }, (error, stdout, stderr) => {
+    sudo.exec(`sudo -S ${chownCommandKey}`, { password: process.env.SUDO_PASS }, (error, stdout, stderr) => {
       if (error) {
         console.error('Error changing file ownership (SSL_KEY):', error.message);
         process.exit(1);
@@ -36,7 +33,7 @@ if (process.env.SERVER === 'LIVE') {
       console.log('Ownership changed (SSL_KEY):', stdout);
     });
 
-    sudo.exec(fullCommandCert, { password: process.env.SUDO_PASS }, (error, stdout, stderr) => {
+    sudo.exec(`sudo -S ${chownCommandCert}`, { password: process.env.SUDO_PASS }, (error, stdout, stderr) => {
       if (error) {
         console.error('Error changing file ownership (SSL_CERT):', error.message);
         process.exit(1);
