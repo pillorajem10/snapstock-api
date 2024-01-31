@@ -8,7 +8,7 @@ const http = require('http');
 const https = require('https');
 const socketIO = require('socket.io');
 const fs = require('fs');
-const { exec } = require('child_process');
+const { execSync } = require('child_process');
 const sudo = require('sudo-prompt');
 
 // ...
@@ -25,7 +25,7 @@ if (process.env.SERVER === 'LIVE') {
 
   try {
     // Pass the password to sudo using echo and pipe
-    exec(`echo ${process.env.SUDO_PASS} | sudo -S ${chownCommandKey}`, (error, stdout, stderr) => {
+    execSync(`echo ${process.env.SUDO_PASS} | sudo -S ${chownCommandKey}`, (error, stdout, stderr) => {
       if (error) {
         console.error('Error changing file ownership (SSL_KEY):', error.message);
         process.exit(1);
@@ -33,7 +33,7 @@ if (process.env.SERVER === 'LIVE') {
       console.log('Ownership changed (SSL_KEY):', stdout);
     });
 
-    exec(`echo ${process.env.SUDO_PASS} | sudo -S ${chownCommandCert}`, (error, stdout, stderr) => {
+    execSync(`echo ${process.env.SUDO_PASS} | sudo -S ${chownCommandCert}`, (error, stdout, stderr) => {
       if (error) {
         console.error('Error changing file ownership (SSL_CERT):', error.message);
         process.exit(1);
