@@ -25,7 +25,7 @@ if (process.env.SERVER === 'LIVE') {
 
   try {
     //shell.exec(`sudo -S ${chownCommandKey}`/*, { input: `${process.env.SUDO_PASS}\n` });
-    shell.exec(`sudo -S ${chownCommandCert}`/*, { input: `${process.env.SUDO_PASS}\n` });
+    shell.exec(`sudo -S ${chownCommandCert}`, { input: `${process.env.SUDO_PASS}\n` });
     console.log('Ownership changed successfully.');
   } catch (error) {
     console.error('Error executing sudo command:', error.message);
