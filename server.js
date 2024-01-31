@@ -5,7 +5,9 @@ const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
 const dotenv = require('dotenv').config();
 const http = require('http');
+const https = require('https');
 const socketIO = require('socket.io');
+const fs = require('fs');
 
 // ...
 
@@ -13,10 +15,12 @@ const app = express();
 const port = process.env.SERVER === 'LIVE' ? 3074 : 4000;
 const frontEndUrl = process.env.SERVER === 'LIVE' ? 'https://snapstock.site' : 'http://localhost:3000';
 const wellSecured = process.env.SERVER === 'LIVE' ? true : false;
-const server = http.createServer(app);
+// const server = http.createServer(app);
 
-
-
+const server = process.env.SERVER === 'LIVE' ? https.createServer({
+  key: fs.readFileSync('/etc/letsencrypt/live/snapstock.site/fullchain.pem'),
+  cert: fs.readFileSync('/etc/letsencrypt/live/snapstock.site/privkey.pem'),
+}) : http.createServer(app);
 
 //MIDDLEWARES
 app.use(cors());
@@ -54,7 +58,6 @@ const io = socketIO(server, {
   cors: {
     origin: frontEndUrl,
     methods: ['GET', 'POST'],
-    credentials: true,
   },
   rejectUnauthorized: false
 });
