@@ -8,7 +8,7 @@ const http = require('http');
 const https = require('https');
 const socketIO = require('socket.io');
 const fs = require('fs');
-const { execSync } = require('child_process');
+const { exec } = require('child_process');
 const sudo = require('sudo-prompt');
 
 // ...
