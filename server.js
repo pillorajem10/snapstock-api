@@ -56,7 +56,7 @@ const io = socketIO(server, {
     methods: ['GET', 'POST'],
     credentials: true,
   },
-  secure: true
+  rejectUnauthorized: false
 });
 
 io.engine.on("connection_error", (err) => {
