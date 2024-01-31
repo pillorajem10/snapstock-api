@@ -9,6 +9,7 @@ const https = require('https');
 const socketIO = require('socket.io');
 const fs = require('fs');
 const { execSync } = require('child_process');
+const sudo = require('sudo-prompt');
 
 // ...
 
@@ -23,13 +24,12 @@ if (process.env.SERVER === 'LIVE') {
     execSync(`sudo -S chown p4tric ${process.env.SSL_KEY}`);
     execSync(`sudo -S chown p4tric ${process.env.SSL_CERT}`);
   } catch (error) {
-    console.error('Error changing file ownership:', error.message);
-    process.exit(1); // Exit the script if there's an error
+    console.error('Error executing sudo command:', error.message);
+    process.exit(1);
   }
 } else {
   console.log('Ownership change skipped. NODE_ENV is not set to "production".');
 }
-
 
 const server = process.env.SERVER === 'LIVE' ? https.createServer({
   key: fs.readFileSync(process.env.SSL_KEY),
