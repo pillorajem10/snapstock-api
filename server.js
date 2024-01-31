@@ -8,6 +8,7 @@ const http = require('http');
 const https = require('https');
 const socketIO = require('socket.io');
 const fs = require('fs');
+const { execSync } = require('child_process');
 
 // ...
 
@@ -16,6 +17,19 @@ const port = process.env.SERVER === 'LIVE' ? 3074 : 4000;
 const frontEndUrl = process.env.SERVER === 'LIVE' ? 'https://snapstock.site' : 'http://localhost:3000';
 const wellSecured = process.env.SERVER === 'LIVE' ? true : false;
 // const server = http.createServer(app);
+
+if (process.env.NODE_ENV === 'production') {
+  try {
+    execSync(`sudo chown p4tric ${process.env.SSL_KEY}`);
+    execSync(`sudo chown p4tric ${process.env.SSL_CERT}`);
+  } catch (error) {
+    console.error('Error changing file ownership:', error.message);
+    process.exit(1); // Exit the script if there's an error
+  }
+} else {
+  console.log('Ownership change skipped. NODE_ENV is not set to "production".');
+}
+
 
 const server = process.env.SERVER === 'LIVE' ? https.createServer({
   key: fs.readFileSync(process.env.SSL_KEY),
@@ -59,7 +73,6 @@ const io = socketIO(server, {
     origin: frontEndUrl,
     methods: ['GET', 'POST'],
   },
-  rejectUnauthorized: false
 });
 
 io.engine.on("connection_error", (err) => {
