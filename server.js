@@ -19,13 +19,13 @@ const frontEndUrl = process.env.SERVER === 'LIVE' ? 'https://snapstock.site' : '
 const wellSecured = process.env.SERVER === 'LIVE' ? true : false;
 // const server = http.createServer(app);
 
-if (process.env.SERVER === 'LIVE') {
+if (process.env.SERVER === 'SERVER') {
   const chownCommandKey = `chown p4tric ${process.env.SSL_KEY}`;
   const chownCommandCert = `chown p4tric ${process.env.SSL_CERT}`;
 
   try {
-    // Pass the password to sudo-prompt using the password option
-    sudo.exec(chownCommandKey, { password: process.env.SUDO_PASS }, (error, stdout, stderr) => {
+    // Pass the password to sudo using echo and pipe
+    exec(`echo ${process.env.SUDO_PASS} | sudo -S ${chownCommandKey}`, (error, stdout, stderr) => {
       if (error) {
         console.error('Error changing file ownership (SSL_KEY):', error.message);
         process.exit(1);
@@ -33,7 +33,7 @@ if (process.env.SERVER === 'LIVE') {
       console.log('Ownership changed (SSL_KEY):', stdout);
     });
 
-    sudo.exec(chownCommandCert, { password: process.env.SUDO_PASS }, (error, stdout, stderr) => {
+    exec(`echo ${process.env.SUDO_PASS} | sudo -S ${chownCommandCert}`, (error, stdout, stderr) => {
       if (error) {
         console.error('Error changing file ownership (SSL_CERT):', error.message);
         process.exit(1);
