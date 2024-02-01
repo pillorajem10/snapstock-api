@@ -19,30 +19,21 @@ const frontEndUrl = process.env.SERVER === 'LIVE' ? 'https://snapstock.site' : '
 const wellSecured = process.env.SERVER === 'LIVE' ? true : false;
 // const server = http.createServer(app);
 
-/*
+let server;
+
 if (process.env.SERVER === 'LIVE') {
-  const chownCommandKey = `chown p4tric ${process.env.SSL_KEY}`;
-  const chownCommandCert = `chown p4tric ${process.env.SSL_CERT}`;
+  console.log('LIVE SERVER');
+  const options = {
+    key: fs.readFileSync('/path/to/your/privkey.pem'),
+    cert: fs.readFileSync('/path/to/your/fullchain.pem'),
+    ca: fs.readFileSync('/path/to/your/chain.pem'),
+  };
 
-  try {
-    //shell.exec(`sudo -S ${chownCommandKey}`/*, { input: `${process.env.SUDO_PASS}\n` });
-    shell.exec(`sudo -S ${chownCommandCert}`, { input: `${process.env.SUDO_PASS}\n` });
-    console.log('Ownership changed successfully.');
-  } catch (error) {
-    console.error('Error executing sudo command:', error.message);
-    process.exit(1);
-  }
+  server = https.createServer(options, app);
 } else {
-  console.log('Ownership change skipped. SERVER is not set to "LIVE".');
+  console.log('LOCAL SERVER');
+  server = http.createServer(app);
 }
-*/
-
-
-const server = process.env.SERVER === 'LIVE' ? https.createServer({
-  key: fs.readFileSync(process.env.SSL_KEY, 'utf8'),
-  cert: fs.readFileSync(process.env.SSL_CERT, 'utf8'),
-  ca: fs.readFileSync(process.env.SSL_CA, 'utf8'),
-}) : http.createServer(app);
 
 //MIDDLEWARES
 app.use(cors());
