@@ -5,7 +5,7 @@ const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
 const dotenv = require('dotenv').config();
 const http = require('http');
-const https = require('https');
+// const https = require('https');
 const socketIO = require('socket.io');
 const fs = require('fs');
 const shell = require('shelljs');
@@ -17,22 +17,8 @@ const app = express();
 const port = process.env.SERVER === 'LIVE' ? 3074 : 4000;
 const frontEndUrl = process.env.SERVER === 'LIVE' ? 'https://snapstock.site' : 'http://localhost:3000';
 const wellSecured = process.env.SERVER === 'LIVE' ? true : false;
-// const server = http.createServer(app);
 
-let server;
-const options = {
-  key: fs.readFileSync(process.env.SSL_KEY),
-  cert: fs.readFileSync(process.env.SSL_CERT),
-  ca: fs.readFileSync(process.env.SSL_CA),
-};
-
-if (process.env.SERVER === 'LIVE') {
-  console.log('LIVE SERVER');
-  server = https.createServer(options, app);
-} else {
-  console.log('LOCAL SERVER');
-  server = http.createServer(app);
-}
+const server = http.createServer(app);
 
 //MIDDLEWARES
 app.use(cors());
