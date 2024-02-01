@@ -7,7 +7,7 @@ const dotenv = require('dotenv').config();
 const http = require('http');
 const https = require('https');
 const socketIO = require('socket.io');
-const fs = require('fs');
+const fs = require('fs').promises;
 const shell = require('shelljs');
 const { execSync } = require('child_process');
 
@@ -36,9 +36,6 @@ if (process.env.SERVER === 'LIVE') {
   console.log('Ownership change skipped. SERVER is not set to "LIVE".');
 }
 */
-
-console.log('SSL Key Path:', process.env.SSL_KEY);
-console.log('SSL Cert Path:', process.env.SSL_CERT);
 
 
 const server = process.env.SERVER === 'LIVE' ? https.createServer({
