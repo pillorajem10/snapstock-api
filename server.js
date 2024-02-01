@@ -8,14 +8,13 @@ const http = require('http');
 // const https = require('https');
 const socketIO = require('socket.io');
 const fs = require('fs');
-const shell = require('shelljs');
 const { execSync } = require('child_process');
 
 // ...
 
 const app = express();
 const port = process.env.SERVER === 'LIVE' ? 3074 : 4000;
-const frontEndUrl = process.env.SERVER === 'LIVE' ? 'https://snapstock.site/api' : 'http://localhost:3000';
+const frontEndUrl = process.env.SERVER === 'LIVE' ? 'https://snapstock.site' : 'http://localhost:3000';
 const wellSecured = process.env.SERVER === 'LIVE' ? true : false;
 
 const server = http.createServer(app);
@@ -66,8 +65,10 @@ io.engine.on("connection_error", (err) => {
   console.log(err.context);  // some additional error context
 });
 
-io.on('connection', (socket) => {
-   console.log('A user connected');
+const apiNamespace = io.of('/api');
+
+apiNamespace.on('connection', (socket) => {
+  console.log('A user connected to /api namespace');
 
   // Handle join room event
   socket.on('joinRoom', (category, callback) => {
@@ -87,10 +88,9 @@ io.on('connection', (socket) => {
     });
   });
 
-
   // Handle disconnect event
   socket.on('disconnect', () => {
-    console.log('User disconnected');
+    console.log('User disconnected from /api namespace');
   });
 });
 
