@@ -35,7 +35,7 @@ if (process.env.SERVER === 'LIVE') {
   console.log('Ownership change skipped. SERVER is not set to "LIVE".');
 }
 
-const server = process.env.SERVER === 'LIVE' ? https.createServer({
+const server = process.env.SERVER === 'LIVE' ? http.createServer({
   key: fs.readFileSync(process.env.SSL_KEY),
   cert: fs.readFileSync(process.env.SSL_CERT),
 }) : http.createServer(app);
