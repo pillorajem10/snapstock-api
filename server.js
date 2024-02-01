@@ -37,10 +37,10 @@ if (process.env.SERVER === 'LIVE') {
 }
 */
 
-const server = process.env.SERVER === 'LIVE' ? /*https.createServer({
+const server = process.env.SERVER === 'LIVE' ? https.createServer({
   key: fs.readFileSync(process.env.SSL_KEY),
   cert: fs.readFileSync(process.env.SSL_CERT),
-})*/ http.createServer(app) : http.createServer(app);
+}) : http.createServer(app);
 
 //MIDDLEWARES
 app.use(cors());
