@@ -17,9 +17,9 @@ const wellSecured = process.env.SERVER === 'LIVE' ? true : false;
 // Load SSL credentials
 const loadSSLCredentials = () => {
   return {
-    key: fs.readFileSync('path/to/private-key.pem'),
-    cert: fs.readFileSync('path/to/certificate.pem'),
-    ca: fs.readFileSync('path/to/ca.pem'), // Optional: Include the certificate authority (CA) chain if needed
+    key: fs.readFileSync(process.env.SSL_KEY),
+    cert: fs.readFileSync(process.env.SSL_CERT),
+    ca: fs.readFileSync(process.env.SSL_CA, // Optional: Include the certificate authority (CA) chain if needed
   };
 };
 
