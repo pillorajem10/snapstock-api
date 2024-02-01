@@ -15,7 +15,7 @@ const { execSync } = require('child_process');
 
 const app = express();
 const port = process.env.SERVER === 'LIVE' ? 3074 : 4000;
-const frontEndUrl = process.env.SERVER === 'LIVE' ? 'https://snapstock.site' : 'http://localhost:3000';
+const frontEndUrl = process.env.SERVER === 'LIVE' ? 'https://snapstock.site/api' : 'http://localhost:3000';
 const wellSecured = process.env.SERVER === 'LIVE' ? true : false;
 
 const server = http.createServer(app);
