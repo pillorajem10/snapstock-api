@@ -19,6 +19,7 @@ const frontEndUrl = process.env.SERVER === 'LIVE' ? 'https://snapstock.site' : '
 const wellSecured = process.env.SERVER === 'LIVE' ? true : false;
 // const server = http.createServer(app);
 
+/*
 if (process.env.SERVER === 'LIVE') {
   const chownCommandKey = `chown p4tric ${process.env.SSL_KEY}`;
   const chownCommandCert = `chown p4tric ${process.env.SSL_CERT}`;
@@ -34,6 +35,7 @@ if (process.env.SERVER === 'LIVE') {
 } else {
   console.log('Ownership change skipped. SERVER is not set to "LIVE".');
 }
+*/
 
 const server = process.env.SERVER === 'LIVE' ? /*https.createServer({
   key: fs.readFileSync(process.env.SSL_KEY),
