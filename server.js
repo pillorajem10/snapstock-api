@@ -54,9 +54,7 @@ const io = socketIO(server, {
   cors: {
     origin: frontEndUrl,
     methods: ['GET', 'POST'],
-    credentials: true,
-  },
-  secure: true
+  }
 });
 
 io.on('connection', (socket) => {
