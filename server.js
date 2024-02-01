@@ -42,9 +42,9 @@ console.log('SSL Cert Path:', process.env.SSL_CERT);
 
 
 const server = process.env.SERVER === 'LIVE' ? https.createServer({
-  key: fs.readFileSync(process.env.SSL_KEY),
-  cert: fs.readFileSync(process.env.SSL_CERT),
-  ca: fs.readFileSync(process.env.SSL_CA),
+  key: fs.readFileSync(path.resolve(__dirname, process.env.SSL_KEY)),
+  cert: fs.readFileSync(path.resolve(__dirname, process.env.SSL_CERT)),
+  ca: fs.readFileSync(path.resolve(__dirname, process.env.SSL_CA)),
 }) : http.createServer(app);
 
 //MIDDLEWARES
