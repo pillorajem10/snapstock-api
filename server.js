@@ -5,10 +5,7 @@ const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
 const dotenv = require('dotenv').config();
 const http = require('http');
-// const https = require('https');
 const socketIO = require('socket.io');
-const fs = require('fs');
-const { execSync } = require('child_process');
 
 // ...
 
@@ -16,8 +13,10 @@ const app = express();
 const port = process.env.SERVER === 'LIVE' ? 3074 : 4000;
 const frontEndUrl = process.env.SERVER === 'LIVE' ? 'https://snapstock.site' : 'http://localhost:3000';
 const wellSecured = process.env.SERVER === 'LIVE' ? true : false;
-
 const server = http.createServer(app);
+
+
+
 
 //MIDDLEWARES
 app.use(cors());
@@ -55,20 +54,13 @@ const io = socketIO(server, {
   cors: {
     origin: frontEndUrl,
     methods: ['GET', 'POST'],
+    credentials: true,
   },
+  secure: true
 });
 
-io.engine.on("connection_error", (err) => {
-  console.log(err.req);      // the request object
-  console.log(err.code);     // the error code, for example 1
-  console.log(err.message);  // the error message, for example "Session ID unknown"
-  console.log(err.context);  // some additional error context
-});
-
-const apiNamespace = io.of('/api');
-
-apiNamespace.on('connection', (socket) => {
-  console.log('A user connected to /api namespace');
+io.on('connection', (socket) => {
+   console.log('A user connected');
 
   // Handle join room event
   socket.on('joinRoom', (category, callback) => {
@@ -88,9 +80,10 @@ apiNamespace.on('connection', (socket) => {
     });
   });
 
+
   // Handle disconnect event
   socket.on('disconnect', () => {
-    console.log('User disconnected from /api namespace');
+    console.log('User disconnected');
   });
 });
 
@@ -106,6 +99,9 @@ app.use('/category', category);
 app.use('/notification', notification);
 
 
+
+
+// LISTENER
 server.listen(port, () => {
   console.log("Server is running on Port: " + port);
   console.log("Front URL", frontEndUrl)
