@@ -24,9 +24,9 @@ let server;
 if (process.env.SERVER === 'LIVE') {
   console.log('LIVE SERVER');
   const options = {
-    key: fs.readFileSync('/path/to/your/privkey.pem'),
-    cert: fs.readFileSync('/path/to/your/fullchain.pem'),
-    ca: fs.readFileSync('/path/to/your/chain.pem'),
+    key: fs.readFileSync(process.env.SSL_KEY),
+    cert: fs.readFileSync(process.env.SSL_CERT),
+    ca: fs.readFileSync(process.env.SSL_CA),
   };
 
   server = https.createServer(options, app);
