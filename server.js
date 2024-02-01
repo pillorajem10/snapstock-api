@@ -37,9 +37,14 @@ if (process.env.SERVER === 'LIVE') {
 }
 */
 
+console.log('SSL Key Path:', process.env.SSL_KEY);
+console.log('SSL Cert Path:', process.env.SSL_CERT);
+
+
 const server = process.env.SERVER === 'LIVE' ? https.createServer({
   key: fs.readFileSync(process.env.SSL_KEY),
   cert: fs.readFileSync(process.env.SSL_CERT),
+  ca: fs.readFileSync(process.env.SSL_CA),
 }) : http.createServer(app);
 
 //MIDDLEWARES
