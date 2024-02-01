@@ -121,11 +121,22 @@ app.use('/category', category);
 app.use('/notification', notification);
 
 
-
-
-// LISTENER
-server.listen(port, () => {
-  console.log("Server is running on Port: " + port);
-  console.log("Front URL", frontEndUrl)
-  console.log("SERVER", process.env.SERVER)
-});
+if (process.env.SERVER === 'LIVE') {
+  try {
+    const server = https.createServer(options, (req, res) => {
+      // Your server logic
+    });
+    server.listen(443, () => {
+      console.log('HTTPS server listening on port 443');
+    });
+  } catch (error) {
+    console.error('Error creating HTTPS server:', error.message);
+  }
+} else {
+  // LISTENER
+  server.listen(port, () => {
+    console.log("Server is running on Port: " + port);
+    console.log("Front URL", frontEndUrl)
+    console.log("SERVER", process.env.SERVER)
+  });
+}
