@@ -5,11 +5,10 @@ const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
 const dotenv = require('dotenv').config();
 const http = require('http');
-const https = require('https');
+// const https = require('https');
 const socketIO = require('socket.io');
 const fs = require('fs');
 const { execSync } = require('child_process');
-const sudo = require('sudo-prompt');
 
 // ...
 
@@ -17,44 +16,8 @@ const app = express();
 const port = process.env.SERVER === 'LIVE' ? 3074 : 4000;
 const frontEndUrl = process.env.SERVER === 'LIVE' ? 'https://snapstock.site' : 'http://localhost:3000';
 const wellSecured = process.env.SERVER === 'LIVE' ? true : false;
-// const server = http.createServer(app);
 
-if (process.env.SERVER === 'LIVE') {
-  const chownCommandKey = `chown p4tric ${process.env.SSL_KEY}`;
-  const fullCommandKey = `sudo -S ${chownCommandKey}`;
-
-  const chownCommandCert = `chown p4tric ${process.env.SSL_CERT}`;
-  const fullCommandCert = `sudo -S ${chownCommandCert}`;
-
-  try {
-    // Pass the password to sudo-prompt using the password option
-    sudo.exec(fullCommandKey, { password: process.env.SUDO_PASS }, (error, stdout, stderr) => {
-      if (error) {
-        console.error('Error changing file ownership (SSL_KEY):', error.message);
-        process.exit(1);
-      }
-      console.log('Ownership changed (SSL_KEY):', stdout);
-    });
-
-    sudo.exec(fullCommandCert, { password: process.env.SUDO_PASS }, (error, stdout, stderr) => {
-      if (error) {
-        console.error('Error changing file ownership (SSL_CERT):', error.message);
-        process.exit(1);
-      }
-      console.log('Ownership changed (SSL_CERT):', stdout);
-    });
-  } catch (error) {
-    console.error('Error executing sudo command:', error.message);
-    process.exit(1);
-  }
-} else {
-  console.log('Ownership change skipped. NODE_ENV is not set to "production".');
-}
-
-const server = process.env.SERVER === 'LIVE' ? https.createServer({
-  key: fs.readFileSync(process.env.SSL_KEY),
-  cert: fs.readFileSync(process.env.SSL_CERT),
-}) : http.createServer(app);
+const server = http.createServer(app);
 
 //MIDDLEWARES
 app.use(cors());
