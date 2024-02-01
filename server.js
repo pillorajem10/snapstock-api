@@ -20,15 +20,14 @@ const wellSecured = process.env.SERVER === 'LIVE' ? true : false;
 // const server = http.createServer(app);
 
 let server;
+const options = {
+  key: fs.readFileSync(process.env.SSL_KEY),
+  cert: fs.readFileSync(process.env.SSL_CERT),
+  ca: fs.readFileSync(process.env.SSL_CA),
+};
 
 if (process.env.SERVER === 'LIVE') {
   console.log('LIVE SERVER');
-  const options = {
-    key: fs.readFileSync(process.env.SSL_KEY),
-    cert: fs.readFileSync(process.env.SSL_CERT),
-    ca: fs.readFileSync(process.env.SSL_CA),
-  };
-
   server = https.createServer(options, app);
 } else {
   console.log('LOCAL SERVER');
@@ -123,9 +122,6 @@ app.use('/notification', notification);
 
 if (process.env.SERVER === 'LIVE') {
   try {
-    const server = https.createServer(options, (req, res) => {
-      // Your server logic
-    });
     server.listen(443, () => {
       console.log('HTTPS server listening on port 443');
     });
