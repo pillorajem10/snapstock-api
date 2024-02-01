@@ -6,25 +6,41 @@ const bodyParser = require('body-parser');
 const dotenv = require('dotenv').config();
 const http = require('http');
 const socketIO = require('socket.io');
-
-// ...
+const tls = require('tls');
+const fs = require('fs');
 
 const app = express();
 const port = process.env.SERVER === 'LIVE' ? 3074 : 4000;
 const frontEndUrl = process.env.SERVER === 'LIVE' ? 'https://snapstock.site' : 'http://localhost:3000';
 const wellSecured = process.env.SERVER === 'LIVE' ? true : false;
-const server = http.createServer(app);
 
+// Load SSL credentials
+const loadSSLCredentials = () => {
+  return {
+    key: fs.readFileSync('path/to/private-key.pem'),
+    cert: fs.readFileSync('path/to/certificate.pem'),
+    ca: fs.readFileSync('path/to/ca.pem'), // Optional: Include the certificate authority (CA) chain if needed
+  };
+};
 
+// MONGOOSE CONNECTION
+const connection = mongoose.connection;
 
+// MONGOOSE || MDB
+mongoose.connect(process.env.MONGO_DB_URL, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+});
 
-//MIDDLEWARES
+connection.once('open', () => {
+  console.log("connected to database");
+});
+
+// MIDDLEWARES
 app.use(cors());
 app.use(bodyParser.json());
 
-
-
-//IMPORTED ROUTES
+// IMPORTED ROUTES
 const product = require('./app/routes/product');
 const order = require('./app/routes/order');
 const delivery = require('./app/routes/delivery');
@@ -33,23 +49,18 @@ const auth = require('./app/routes/auth');
 const category = require('./app/routes/category');
 const notification = require('./app/routes/notification');
 
-
-
-//MONGOOSE CONNECTION
-const connection = mongoose.connection;
-
-//MONGOOSE || MDB
-mongoose.connect(process.env.MONGO_DB_URL, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-});
-
-connection.once('open', () => {
-  console.log("connected to database");
-})
-
-
 // SOCKET IO
+let server;
+
+if (process.env.SERVER === 'LIVE') {
+  // TLS server for live deployment
+  const tlsOptions = loadSSLCredentials();
+  server = tls.createServer(tlsOptions, app);
+} else {
+  // HTTP server for local development
+  server = http.createServer(app);
+}
+
 const io = socketIO(server, {
   cors: {
     origin: frontEndUrl,
@@ -58,7 +69,7 @@ const io = socketIO(server, {
 });
 
 io.on('connection', (socket) => {
-   console.log('A user connected');
+  console.log('A user connected');
 
   // Handle join room event
   socket.on('joinRoom', (category, callback) => {
@@ -78,16 +89,13 @@ io.on('connection', (socket) => {
     });
   });
 
-
   // Handle disconnect event
   socket.on('disconnect', () => {
     console.log('User disconnected');
   });
 });
 
-
-
-//ROUTES
+// ROUTES
 app.use('/product', product);
 app.use('/order', order(io));
 app.use('/delivery', delivery);
@@ -95,9 +103,6 @@ app.use('/user', user);
 app.use('/auth', auth);
 app.use('/category', category);
 app.use('/notification', notification);
-
-
-
 
 // LISTENER
 server.listen(port, () => {
