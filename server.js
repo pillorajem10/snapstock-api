@@ -122,8 +122,8 @@ app.use('/notification', notification);
 
 if (process.env.SERVER === 'LIVE') {
   try {
-    server.listen(443, () => {
-      console.log('HTTPS server listening on port 443');
+    server.listen(port, () => {
+      console.log('HTTPS server listening on port 3074');
     });
   } catch (error) {
     console.error('Error creating HTTPS server:', error.message);
