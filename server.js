@@ -106,19 +106,8 @@ app.use('/category', category);
 app.use('/notification', notification);
 
 
-if (process.env.SERVER === 'LIVE') {
-  try {
-    server.listen(port, () => {
-      console.log('HTTPS server listening on port 3074');
-    });
-  } catch (error) {
-    console.error('Error creating HTTPS server:', error.message);
-  }
-} else {
-  // LISTENER
-  server.listen(port, () => {
-    console.log("Server is running on Port: " + port);
-    console.log("Front URL", frontEndUrl)
-    console.log("SERVER", process.env.SERVER)
-  });
-}
+server.listen(port, () => {
+  console.log("Server is running on Port: " + port);
+  console.log("Front URL", frontEndUrl)
+  console.log("SERVER", process.env.SERVER)
+});
