@@ -14,14 +14,15 @@ const port = process.env.SERVER === 'LIVE' ? 3074 : 4000;
 const frontEndUrl = process.env.SERVER === 'LIVE' ? 'https://snapstock.site' : 'http://localhost:3000';
 const wellSecured = process.env.SERVER === 'LIVE' ? true : false;
 
-// Load SSL credentials
+
 const loadSSLCredentials = () => {
   return {
     key: fs.readFileSync(process.env.SSL_KEY),
     cert: fs.readFileSync(process.env.SSL_CERT),
-    ca: fs.readFileSync(process.env.SSL_CA, // Optional: Include the certificate authority (CA) chain if needed
+    ca: fs.readFileSync(process.env.SSL_CA), // <-- Add the missing closing parenthesis
   };
 };
+
 
 // MONGOOSE CONNECTION
 const connection = mongoose.connection;
