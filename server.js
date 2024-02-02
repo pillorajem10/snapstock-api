@@ -58,6 +58,7 @@ const getApiAndEmit = async (socket) => {
   try {
     console.log("[(x_-) getApiAndEmit] ");
     socket.emit("FromAPI", "EMITEMITEMIT");
+    // socket.emit("joinRoom", "EMITEMITEMIT");
   } catch (err) {
     console.error(`[(x_-) ERRAH] `, err);
   }
