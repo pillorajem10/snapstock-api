@@ -14,10 +14,7 @@ const frontEndUrl =
   process.env.SERVER === "LIVE"
     ? "https://snapstock.site"
     : "http://localhost:3000";
-const wellSecured = process.env.SERVER === "LIVE" ? true : false;
-// const server = http.createServer(app);
 
-//IMPORTED ROUTES
 const product = require("./app/routes/product");
 const order = require("./app/routes/order");
 const delivery = require("./app/routes/delivery");
@@ -33,15 +30,6 @@ app.use(bodyParser.json());
 // SOCKET IO
 const server = http.createServer(app);
 const io = socketIo(server);
-// SOCKET IO
-// const io = socketIO(server, {
-//   cors: {
-//     origin: frontEndUrl,
-//     methods: ['GET', 'POST'],
-//     credentials: true,
-//   },
-//   secure: true
-// });
 
 //MONGOOSE CONNECTION
 const connection = mongoose.connection;
@@ -54,23 +42,8 @@ connection.once("open", () => {
   console.log("connected to database");
 });
 
-const getApiAndEmit = async (socket) => {
-  try {
-    console.log("[(x_-) getApiAndEmit] ");
-    socket.emit("FromAPI", "EMITEMITEMIT");
-    // socket.emit("joinRoom", "EMITEMITEMIT");
-  } catch (err) {
-    console.error(`[(x_-) ERRAH] `, err);
-  }
-};
-
-let interval;
 io.on("connection", (socket) => {
   console.log("A user connected");
-  // if (interval) {
-  //   clearInterval(interval);
-  // }
-  // interval = setInterval(() => getApiAndEmit(socket), 10000);
 
   // Handle join room event
   socket.on("joinRoom", (category, callback) => {

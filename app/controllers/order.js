@@ -360,35 +360,38 @@ exports.add = (req, res, io) => {
         return sendError(res, err, 'Add order failed');
       } else {
         const convertedDate = convertMomentWithFormat(order.createdAt);
-        const month = +convertedDate.split('/')[0];
-        const date = +convertedDate.split('/')[1];
-        const year = +convertedDate.split('/')[2];
+        const month = +convertedDate.split("/")[0];
+        const date = +convertedDate.split("/")[1];
+        const year = +convertedDate.split("/")[2];
 
         order.monthOrdered = month;
         order.dateOrdered = date;
         order.yearOrdered = year;
 
-        order.credit = 'false';
+        order.credit = "false";
 
         order.save();
 
-        console.log("[(x_-) CREATE ORDER decodedToken] ", decodedToken);
         // Save the notification in the database
         const notification = new Notification({
           category: decodedToken.user.category,
-          message: `${decodedToken.user.fname} added an order`
+          message: `${decodedToken.user.fname} added an order`,
         });
 
         notification.save();
 
         if (io) {
-          io.to(decodedToken.user.category).emit('newOrder', `${decodedToken.user.fname} added an order`, (error) => {
-            if (error) {
-                console.error('Emit failed:', error);
-            } else {
-                console.log("Emitor successful");
+          io.to(decodedToken.user.category).emit(
+            "newOrder",
+            `${decodedToken.user.fname} added an order`,
+            (error) => {
+              if (error) {
+                console.error("Emit failed:", error);
+              } else {
+                console.log("Emit successful");
+              }
             }
-          });
+          );
         }
 
         return sendSuccess(res, order);
