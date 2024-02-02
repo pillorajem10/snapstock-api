@@ -73,7 +73,7 @@ io.on("connection", (socket) => {
   // interval = setInterval(() => getApiAndEmit(socket), 10000);
 
   // Handle join room event
-  socket.on("joinRoom", category, (callback) => {
+  socket.on("joinRoom", (category, callback) => {
     console.log("ROOM: ", category);
 
     // Attempt to join the room
