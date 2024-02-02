@@ -56,7 +56,7 @@ let server;
 if (process.env.SERVER === 'LIVE') {
   // TLS server for live deployment
   const tlsOptions = loadSSLCredentials();
-  server = http.createServer(tlsOptions, app);
+  server = tls.createServer(tlsOptions, app);
 } else {
   // HTTP server for local development
   server = http.createServer(app);
