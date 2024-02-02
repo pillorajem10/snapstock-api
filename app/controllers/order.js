@@ -372,6 +372,7 @@ exports.add = (req, res, io) => {
 
         order.save();
 
+        console.log("[(x_-) CREATE ORDER decodedToken] ", decodedToken);
         // Save the notification in the database
         const notification = new Notification({
           category: decodedToken.user.category,
@@ -385,7 +386,7 @@ exports.add = (req, res, io) => {
             if (error) {
                 console.error('Emit failed:', error);
             } else {
-                console.log('Emit successful');
+                console.log("Emitor successful");
             }
           });
         }
