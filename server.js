@@ -6,7 +6,7 @@ const cors = require("cors");
 const mongoose = require("mongoose");
 const bodyParser = require("body-parser");
 const http = require("http");
-const socketIO = require("socket.io");
+const socketIo = require("socket.io");
 
 const app = express();
 const port = process.env.SERVER === "LIVE" ? 3074 : 4000;
