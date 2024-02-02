@@ -58,7 +58,7 @@ io.on("connection", (socket) => {
   console.log("A user connected");
 
   // Handle join room event
-  socket.on("joinRoom", (category, callback) => {
+  socket.on("joinRoom", category, (callback) => {
     console.log("ROOM: ", category);
 
     // Attempt to join the room
