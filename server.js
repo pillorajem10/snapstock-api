@@ -67,10 +67,10 @@ const getApiAndEmit = async (socket) => {
 let interval;
 io.on("connection", (socket) => {
   console.log("A user connected");
-  if (interval) {
-    clearInterval(interval);
-  }
-  interval = setInterval(() => getApiAndEmit(socket), 10000);
+  // if (interval) {
+  //   clearInterval(interval);
+  // }
+  // interval = setInterval(() => getApiAndEmit(socket), 10000);
 
   // Handle join room event
   socket.on("joinRoom", category, (callback) => {
