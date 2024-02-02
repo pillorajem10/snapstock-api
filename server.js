@@ -15,9 +15,6 @@ const frontEndUrl = process.env.SERVER === 'LIVE' ? 'https://snapstock.site' : '
 const wellSecured = process.env.SERVER === 'LIVE' ? true : false;
 const server = http.createServer(app);
 
-
-
-
 //MIDDLEWARES
 app.use(cors());
 app.use(bodyParser.json());
@@ -33,6 +30,18 @@ const auth = require('./app/routes/auth');
 const category = require('./app/routes/category');
 const notification = require('./app/routes/notification');
 
+// SOCKET IO
+let server;
+
+if (process.env.SERVER === 'LIVE') {
+  // TLS server for live deployment
+  // const tlsOptions = loadSSLCredentials();
+  // server = tls.createServer(tlsOptions, app);
+  server = http.createServer(app);
+} else {
+  // HTTP server for local development
+  server = http.createServer(app);
+}
 
 
 //MONGOOSE CONNECTION
