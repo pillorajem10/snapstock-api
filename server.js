@@ -7,10 +7,12 @@ const mongoose = require("mongoose");
 const bodyParser = require("body-parser");
 const http = require("http");
 const socketIo = require("socket.io");
+
+
+const app = express();
 const server = http.createServer(app);
 const io = socketIo(server);
 
-const app = express();
 const port = process.env.SERVER === "LIVE" ? 3074 : 4000;
 const frontEndUrl =
   process.env.SERVER === "LIVE"
