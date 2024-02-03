@@ -18,7 +18,13 @@ exports.convertMomentWithFormat = (v) => {
 };
 
 exports.sendError = (v, data, msg = '', errNo = 400, code = 101, collection = '') => {
-  console.log('COLLECTION', collection);
+  // console.log('COLLECTION', collection);
+
+  console.log("[(x_-) SEND ERROR collection] ", collection);
+  console.log("[(x_-) SEND ERROR code] ", code);
+  console.log("[(x_-) SEND ERROR data] ", data);
+  console.log("[(x_-) SEND ERROR msg] ", msg);
+
   let errorMessage = msg;
 
   // Check if MongoDB unique constraint violation (code 11000) occurred
@@ -29,7 +35,7 @@ exports.sendError = (v, data, msg = '', errNo = 400, code = 101, collection = ''
       errorMessage = `${collection} with this ${duplicateFieldMatch[1]} already exists`;
       collection = duplicateFieldMatch[1]; // Set the collection name dynamically
     } else {
-      errorMessage = 'Existing field already exists';
+      errorMessage = "Existing field already exists";
     }
   }
 
@@ -38,7 +44,7 @@ exports.sendError = (v, data, msg = '', errNo = 400, code = 101, collection = ''
     msg: errorMessage,
     data,
     success: false,
-    version: '0.0.1',
+    version: "0.0.1",
     code,
     collection, // Include the collection name in the response
   });
