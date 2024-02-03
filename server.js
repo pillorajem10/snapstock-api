@@ -7,6 +7,8 @@ const mongoose = require("mongoose");
 const bodyParser = require("body-parser");
 const http = require("http");
 const socketIo = require("socket.io");
+const server = http.createServer(app);
+const io = socketIo(server);
 
 const app = express();
 const port = process.env.SERVER === "LIVE" ? 3074 : 4000;
@@ -41,20 +43,6 @@ app.use(cors());
 app.use(bodyParser.json());
 
 // SOCKET IO
-const server = http.createServer(app);
-const io = socketIo(server);
-
-//MONGOOSE CONNECTION
-const connection = mongoose.connection;
-//MONGOOSE || MDB
-mongoose.connect(process.env.MONGO_DB_URL, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-});
-connection.once("open", () => {
-  console.log("connected to database");
-});
-
 io.on("connection", (socket) => {
   console.log("A user connected");
 
