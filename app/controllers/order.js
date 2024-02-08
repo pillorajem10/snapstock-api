@@ -358,36 +358,47 @@ exports.add = (req, res, io) => {
       if (err) {
         return sendError(res, err, 'Add order failed');
       } else {
+<<<<<<< HEAD
         const convertedDate = currentDate.toLocaleDateString('en-US', { timeZone: 'Asia/Manila' });
 
         const month = +convertedDate.split('/')[0];
         const date = +convertedDate.split('/')[1];
         const year = +convertedDate.split('/')[2];
+=======
+        const convertedDate = convertMomentWithFormat(order.createdAt);
+        const month = +convertedDate.split("/")[0];
+        const date = +convertedDate.split("/")[1];
+        const year = +convertedDate.split("/")[2];
+>>>>>>> 33e826bd9f37c7de5c247c3f5e40565cedd5bd2d
 
         order.monthOrdered = month;
         order.dateOrdered = date;
         order.yearOrdered = year;
 
-        order.credit = 'false';
+        order.credit = "false";
 
         order.save();
 
         // Save the notification in the database
         const notification = new Notification({
           category: decodedToken.user.category,
-          message: `${decodedToken.user.fname} added an order`
+          message: `${decodedToken.user.fname} added an order`,
         });
 
         notification.save();
 
         if (io) {
-          io.to(decodedToken.user.category).emit('newOrder', `${decodedToken.user.fname} added an order`, (error) => {
-            if (error) {
-                console.error('Emit failed:', error);
-            } else {
-                console.log('Emit successful');
+          io.to(decodedToken.user.category).emit(
+            "newOrder",
+            `${decodedToken.user.fname} added an order`,
+            (error) => {
+              if (error) {
+                console.error("Emit failed:", error);
+              } else {
+                console.log("Emit successful");
+              }
             }
-          });
+          );
         }
 
         return sendSuccess(res, order);
