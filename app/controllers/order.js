@@ -2,6 +2,7 @@ const Order = require('../models/Order.js');
 const OrderItem = require('../models/OrderItem.js');
 const Product = require('../models/Product.js');
 const Notification = require('../models/Notification.js');
+const User = require('../models/User.js');
 const mongoose = require('mongoose');
 const puppeteer = require('puppeteer');
 const fs = require('fs');
@@ -16,6 +17,7 @@ const pdf = require("html-pdf");
 const {
   sendError,
   sendSuccess,
+  convertMomentWithFormat,
   getToken,
   sendErrorUnauthorized,
   formatPriceX,
@@ -353,23 +355,15 @@ exports.add = (req, res, io) => {
   let token = getToken(req.headers);
   if (token) {
     const decodedToken = jwt.decode(token);
-    const currentDate = new Date();
+
     Order.create(req.body, function (err, order) {
       if (err) {
         return sendError(res, err, 'Add order failed');
       } else {
-<<<<<<< HEAD
-        const convertedDate = currentDate.toLocaleDateString('en-US', { timeZone: 'Asia/Manila' });
-
-        const month = +convertedDate.split('/')[0];
-        const date = +convertedDate.split('/')[1];
-        const year = +convertedDate.split('/')[2];
-=======
         const convertedDate = convertMomentWithFormat(order.createdAt);
         const month = +convertedDate.split("/")[0];
         const date = +convertedDate.split("/")[1];
         const year = +convertedDate.split("/")[2];
->>>>>>> 33e826bd9f37c7de5c247c3f5e40565cedd5bd2d
 
         order.monthOrdered = month;
         order.dateOrdered = date;
@@ -380,12 +374,38 @@ exports.add = (req, res, io) => {
         order.save();
 
         // Save the notification in the database
-        const notification = new Notification({
+        /*const notification = new Notification({
           category: decodedToken.user.category,
           message: `${decodedToken.user.fname} added an order`,
         });
 
-        notification.save();
+        notification.save();*/
+
+        User.find({ category: decodedToken.user.category })
+        .exec((err, users) => {
+          if (err) {
+            console.error('Error getting users with the same category:', err);
+            return;
+          }
+
+          // Lumikha ng notification para sa bawat user
+          users.forEach(user => {
+            const notification = new Notification({
+              category: decodedToken.user.category,
+              message: `${decodedToken.user.fname} added an order`,
+              user: user._id // Idagdag ang user ID sa notification
+            });
+
+            // I-save ang notification sa database
+            notification.save((err) => {
+              if (err) {
+                console.error('Error saving notification:', err);
+                return;
+              }
+              console.log('Notification saved for user:', user._id);
+            });
+          });
+        });
 
         if (io) {
           io.to(decodedToken.user.category).emit(

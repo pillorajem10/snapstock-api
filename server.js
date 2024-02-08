@@ -1,29 +1,3 @@
-<<<<<<< HEAD
-// DEPENDENCIES
-const express = require('express');
-const cors = require('cors');
-const mongoose = require('mongoose');
-const bodyParser = require('body-parser');
-const dotenv = require('dotenv').config();
-const http = require('http');
-const socketIO = require('socket.io');
-const tls = require('tls');
-const fs = require('fs');
-
-const app = express();
-const port = process.env.SERVER === 'LIVE' ? 3074 : 4000;
-const frontEndUrl = process.env.SERVER === 'LIVE' ? 'https://snapstock.site' : 'http://localhost:3000';
-const wellSecured = process.env.SERVER === 'LIVE' ? true : false;
-
-
-const loadSSLCredentials = () => {
-  return {
-    key: fs.readFileSync(process.env.SSL_KEY),
-    cert: fs.readFileSync(process.env.SSL_CERT),
-    ca: fs.readFileSync(process.env.SSL_CA), // <-- Add the missing closing parenthesis
-  };
-};
-=======
 require("dotenv").config();
 
 // DEPENDENCIES
@@ -40,7 +14,6 @@ const frontEndUrl =
   process.env.SERVER === "LIVE"
     ? "https://snapstock.site"
     : "http://localhost:3000";
->>>>>>> 33e826bd9f37c7de5c247c3f5e40565cedd5bd2d
 
 const product = require("./app/routes/product");
 const order = require("./app/routes/order");
@@ -50,26 +23,26 @@ const auth = require("./app/routes/auth");
 const category = require("./app/routes/category");
 const notification = require("./app/routes/notification");
 
-// MONGOOSE CONNECTION
-const connection = mongoose.connection;
-
-// MONGOOSE || MDB
-mongoose.connect(process.env.MONGO_DB_URL, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-});
-
-connection.once('open', () => {
-  console.log("connected to database");
-});
-
-// MIDDLEWARES
+//MIDDLEWARES
 app.use(cors());
 app.use(bodyParser.json());
 
 // SOCKET IO
 const server = http.createServer(app);
-const io = socketIo(server);
+// const io = socketIo(server);
+
+let io;
+
+if (process.env.SERVER === "LIVE") {
+  io = socketIo(server);
+} else {
+  io = socketIo(server, {
+    cors: {
+      origin: frontEndUrl,
+      methods: ["GET", "POST"]
+    }
+  });
+};
 
 //MONGOOSE CONNECTION
 const connection = mongoose.connection;
