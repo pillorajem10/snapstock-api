@@ -361,6 +361,7 @@ exports.add = (req, res, io) => {
         return sendError(res, err, 'Add order failed');
       } else {
         const convertedDate = convertMomentWithFormat(order.createdAt);
+        console.log('CONVERTED DATE', convertedDate)
         const month = +convertedDate.split("/")[0];
         const date = +convertedDate.split("/")[1];
         const year = +convertedDate.split("/")[2];
@@ -372,14 +373,6 @@ exports.add = (req, res, io) => {
         order.credit = "false";
 
         order.save();
-
-        // Save the notification in the database
-        /*const notification = new Notification({
-          category: decodedToken.user.category,
-          message: `${decodedToken.user.fname} added an order`,
-        });
-
-        notification.save();*/
 
         User.find({ category: decodedToken.user.category })
         .exec((err, users) => {
@@ -402,7 +395,6 @@ exports.add = (req, res, io) => {
                 console.error('Error saving notification:', err);
                 return;
               }
-              console.log('Notification saved for user:', user._id);
             });
           });
         });
