@@ -13,9 +13,19 @@ const randomAuthor = () => {
  * convert moment
  * @param {*} params
  */
-exports.convertMomentWithFormat = (v) => {
-  return moment(v).format('MM/DD/YYYY');
-};
+ exports.convertMomentWithFormat = (v) => {
+   // Convert the given date to a Moment object
+   const inputDate = moment(v);
+
+   // Define the timezone offset of Manila (+08:00)
+   const manilaOffset = 8 * 60; // 8 hours * 60 minutes
+
+   // Apply the offset to the input date to get the Manila time
+   const manilaTime = inputDate.utcOffset(manilaOffset);
+
+   // Format the date
+   return manilaTime.format('MM/DD/YYYY');
+ };
 
 exports.sendError = (v, data, msg = '', errNo = 400, code = 101, collection = '') => {
   // console.log('COLLECTION', collection);
