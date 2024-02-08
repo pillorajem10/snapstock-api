@@ -378,11 +378,11 @@ exports.add = (req, res, io) => {
       if (err) {
         return sendError(res, err, 'Add order failed');
       } else {
-        const convertedDate = convertMomentWithFormat(order.createdAt);
-        console.log('CONVERTED DATE', convertedDate)
-        const month = +convertedDate.split("/")[0];
-        const date = +convertedDate.split("/")[1];
-        const year = +convertedDate.split("/")[2];
+        const today = new Date();
+
+        const month = today.getMonth() + 1;;
+        const date = today.getDate();
+        const year = today.getFullYear();
 
         order.monthOrdered = month;
         order.dateOrdered = date;
