@@ -70,13 +70,13 @@ exports.list = (req, res, next) => {
       orderFieldsFilter.customerName = { $regex: customerName, $options: "i" }; // Case-insensitive regex search
     }
 
-    // Get the current date
-    const today = new Date();
-    const currentMonth = today.getMonth() + 1; // Month is 0-indexed in JavaScript Date object
-    const currentDate = today.getDate();
-    const currentYear = today.getFullYear();
+    // Get the current date in Manila time zone (UTC+8)
+    const todayManila = new Date(new Date().getTime() + (8 * 60 * 60 * 1000));
+    const currentMonth = todayManila.getMonth() + 1; // Month is 0-indexed in JavaScript Date object
+    const currentDate = todayManila.getDate();
+    const currentYear = todayManila.getFullYear();
 
-    // Filter orders within the current day
+    // Filter orders within the current day in Manila time
     const utcDateOrderedFilter = {
       monthOrdered: currentMonth,
       dateOrdered: currentDate,
@@ -110,6 +110,7 @@ exports.list = (req, res, next) => {
     return sendErrorUnauthorized(res, "", "Please login first.");
   }
 };
+
 
 
 exports.downloadExcel = async (req, res) => {
@@ -380,9 +381,12 @@ exports.add = (req, res, io) => {
       } else {
         const today = new Date();
 
-        const month = today.getMonth() + 1;;
-        const date = today.getDate();
-        const year = today.getFullYear();
+        // Adjust date to Manila (UTC+8) time zone
+        const manilaDate = new Date(today.getTime() + (8 * 60 * 60 * 1000));
+
+        const month = manilaDate.getMonth() + 1;
+        const date = manilaDate.getDate();
+        const year = manilaDate.getFullYear();
 
         order.monthOrdered = month;
         order.dateOrdered = date;
@@ -390,54 +394,65 @@ exports.add = (req, res, io) => {
 
         order.credit = "false";
 
-        order.save();
-
-        User.find({ category: decodedToken.user.category })
-        .exec((err, users) => {
+        // Save the order after updating its fields
+        order.save((err) => {
           if (err) {
-            console.error('Error getting users with the same category:', err);
-            return;
+            return sendError(res, err, 'Failed to save order');
           }
 
-          // Lumikha ng notification para sa bawat user
-          users.forEach(user => {
-            const notification = new Notification({
-              category: decodedToken.user.category,
-              message: `${decodedToken.user.fname} added an order`,
-              user: user._id // Idagdag ang user ID sa notification
-            });
-
-            // I-save ang notification sa database
-            notification.save((err) => {
+          User.find({ category: decodedToken.user.category })
+            .exec((err, users) => {
               if (err) {
-                console.error('Error saving notification:', err);
+                console.error('Error getting users with the same category:', err);
                 return;
               }
+
+              // Create notifications for each user
+              users.forEach(user => {
+                const notification = new Notification({
+                  category: decodedToken.user.category,
+                  message: `${decodedToken.user.fname} added an order`,
+                  user: user._id // Add user ID to the notification
+                });
+
+                // Save the notification to the database
+                notification.save((err) => {
+                  if (err) {
+                    console.error('Error saving notification:', err);
+                    return;
+                  }
+                });
+              });
             });
-          });
-        });
 
-        if (io) {
-          io.to(decodedToken.user.category).emit(
-            "newOrder",
-            `${decodedToken.user.fname} added an order`,
-            (error) => {
-              if (error) {
-                console.error("Emit failed:", error);
-              } else {
-                console.log("Emit successful");
+          // Emit socket event if io is provided
+          if (io) {
+            io.to(decodedToken.user.category).emit(
+              "newOrder",
+              `${decodedToken.user.fname} added an order`,
+              (error) => {
+                if (error) {
+                  console.error("Emit failed:", error);
+                } else {
+                  console.log("Emit successful");
+                }
               }
-            }
-          );
-        }
+            );
+          }
 
-        return sendSuccess(res, order);
+          // Send success response with the saved order
+          return sendSuccess(res, order);
+        });
       }
     });
   } else {
     return sendErrorUnauthorized(res, '', 'Please login first.');
   }
 };
+
+
+
+
 
 //GET BY ID
 exports.getById = (req, res, next)=>{
