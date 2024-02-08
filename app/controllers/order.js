@@ -360,24 +360,10 @@ exports.add = (req, res, io) => {
       if (err) {
         return sendError(res, err, 'Add order failed');
       } else {
-<<<<<<< HEAD
-<<<<<<< HEAD
-        const convertedDate = currentDate.toLocaleDateString('en-US', { timeZone: 'Asia/Manila' });
-
-        const month = +convertedDate.split('/')[0];
-        const date = +convertedDate.split('/')[1];
-        const year = +convertedDate.split('/')[2];
-=======
-=======
->>>>>>> 8b50c64d8f45a9ea13f18843c08732a9a87ace64
         const convertedDate = convertMomentWithFormat(order.createdAt);
         const month = +convertedDate.split("/")[0];
         const date = +convertedDate.split("/")[1];
         const year = +convertedDate.split("/")[2];
-<<<<<<< HEAD
->>>>>>> 33e826bd9f37c7de5c247c3f5e40565cedd5bd2d
-=======
->>>>>>> 8b50c64d8f45a9ea13f18843c08732a9a87ace64
 
         order.monthOrdered = month;
         order.dateOrdered = date;
