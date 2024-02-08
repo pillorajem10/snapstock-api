@@ -27,24 +27,38 @@ const auth = require("./app/routes/auth");
 const category = require("./app/routes/category");
 const notification = require("./app/routes/notification");
 
-// MONGOOSE CONNECTION
-const connection = mongoose.connection;
-
-// MONGOOSE || MDB
-mongoose.connect(process.env.MONGO_DB_URL, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-});
-
-connection.once('open', () => {
-  console.log("connected to database");
-});
-
-// MIDDLEWARES
+//MIDDLEWARES
 app.use(cors());
 app.use(bodyParser.json());
 
 // SOCKET IO
+const server = http.createServer(app);
+// const io = socketIo(server);
+
+let io;
+
+if (process.env.SERVER === "LIVE") {
+  io = socketIo(server);
+} else {
+  io = socketIo(server, {
+    cors: {
+      origin: frontEndUrl,
+      methods: ["GET", "POST"]
+    }
+  });
+};
+
+//MONGOOSE CONNECTION
+const connection = mongoose.connection;
+//MONGOOSE || MDB
+mongoose.connect(process.env.MONGO_DB_URL, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+});
+connection.once("open", () => {
+  console.log("connected to database");
+});
+
 io.on("connection", (socket) => {
   console.log("A user connected");
 

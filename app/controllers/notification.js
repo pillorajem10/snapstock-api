@@ -41,10 +41,21 @@ exports.list = (req, res, next) => {
             return mongoose.Types.ObjectId(categ);
           });
 
+      let userIds =
+        req.query.user &&
+        req.query.user
+          .split(",")
+          .filter((user) => user !== "undefined")
+          .map(function (user) {
+            return mongoose.Types.ObjectId(user);
+          });
+
+
       const notifFieldsFilter = {
         stock: req.query.minimumPrice,
         name: name ? { $regex: name, $options: "i" } : undefined,
         category: req.query.category ? { $in: categIds } : undefined,
+        user: req.query.user ? { $in: userIds } : undefined,
       };
 
       // Will remove a key if that key is undefined
@@ -55,7 +66,7 @@ exports.list = (req, res, next) => {
 
       const filterOptions = [
         { $match: notifFieldsFilter },
-        { $sort: { createdAt: -1 } },
+        { $sort: { createdAt: -1 } }, // Sorting in descending order by createdAt
       ];
 
       const aggregateQuery = Notification.aggregate(filterOptions);
@@ -76,5 +87,21 @@ exports.list = (req, res, next) => {
     }
   } catch (err) {
     console.error("[ERROR IN NOTIFICATION]", err);
+  }
+};
+
+
+exports.updateById = (req, res, next) => {
+  let token = getToken(req.headers);
+  if (token) {
+    const ids = req.body.ids; // Assuming you pass an array of IDs in the request body
+    const updateData = req.body.updateData; // Assuming you pass the update data in the request body
+
+    Notification.updateMany({ _id: { $in: ids } }, updateData, { new: true }, function (err, result) {
+      if (err || !result) return sendError(res, {}, 'Update failed.');
+      return sendSuccess(res, result, 'Updated.');
+    });
+  } else {
+    return sendErrorUnauthorized(res, "", "Please login first.");
   }
 };

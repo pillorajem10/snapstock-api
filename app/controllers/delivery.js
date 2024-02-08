@@ -1,6 +1,7 @@
 const Delivery = require('../models/Delivery.js');
 const Product = require('../models/Product.js');
 const puppeteer = require('puppeteer');
+const mongoose = require('mongoose');
 const fs = require('fs');
 const handlebars = require('handlebars');
 const path = require('path');
@@ -19,7 +20,7 @@ const {
 
 //LIST ALL PRODUCTS
 exports.list = (req, res, next) => {
-  const { pageIndex, pageSize, sort_by, sort_direction, productName } =
+  const { pageIndex, pageSize, sort_by, sort_direction, productName, category } =
     req.query;
 
   const page = pageIndex;
@@ -41,6 +42,12 @@ exports.list = (req, res, next) => {
     };
   }
 
+  let categIds =
+    req.query.category &&
+    req.query.category.split(",").map(function (categ) {
+      return mongoose.Types.ObjectId(categ);
+    });
+
   const deliveryFieldsFilter = {
     stock: req.query.minimumPrice,
     monthDelivered: req.query.monthDelivered
@@ -52,6 +59,7 @@ exports.list = (req, res, next) => {
     yearDelivered: req.query.yearDelivered
       ? +req.query.yearDelivered
       : undefined,
+    category: req.query.category ? { $in: categIds } : undefined,
     // $text: req.query.productName ? { $search: req.query.productName } : undefined,
   };
 

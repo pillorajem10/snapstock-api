@@ -8,9 +8,12 @@ let NotificationSchema = new mongoose.Schema(
   {
     category: { type: Schema.ObjectId, ref: 'Category' },
     message: { type: String, default: '' },
+    unread: { type: Boolean, default: true },
+    user: { type: Schema.ObjectId, ref: 'User' }
   },
   { timestamps: true }
 );
+
 
 NotificationSchema.plugin(aggregatePaginate);
 
