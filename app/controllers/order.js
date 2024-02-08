@@ -54,14 +54,12 @@ exports.list = (req, res, next) => {
         return mongoose.Types.ObjectId(categ);
       });
 
-    const orderFieldsFilter = {
+    let orderFieldsFilter = {
       stock:
         req.query.minimumStock && req.query.maximumStock
           ? { $gte: +req.query.minimumStock, $lte: +req.query.maximumStock }
           : undefined,
-      monthOrdered: req.query.monthOrdered
-        ? +req.query.monthOrdered
-        : undefined,
+      monthOrdered: req.query.monthOrdered ? +req.query.monthOrdered : undefined,
       dateOrdered: req.query.dateOrdered ? +req.query.dateOrdered : undefined,
       yearOrdered: req.query.yearOrdered ? +req.query.yearOrdered : undefined,
       category: req.query.category ? { $in: categIds } : undefined,
@@ -72,7 +70,26 @@ exports.list = (req, res, next) => {
       orderFieldsFilter.customerName = { $regex: customerName, $options: "i" }; // Case-insensitive regex search
     }
 
-    // Will remove a key if that key is undefined
+    // Get the current date
+    const today = new Date();
+    const currentMonth = today.getMonth() + 1; // Month is 0-indexed in JavaScript Date object
+    const currentDate = today.getDate();
+    const currentYear = today.getFullYear();
+
+    // Filter orders within the current day
+    const utcDateOrderedFilter = {
+      monthOrdered: currentMonth,
+      dateOrdered: currentDate,
+      yearOrdered: currentYear
+    };
+
+    // Combine the filters
+    orderFieldsFilter = {
+      ...orderFieldsFilter,
+      ...utcDateOrderedFilter
+    };
+
+    // Remove undefined keys from the filter
     Object.keys(orderFieldsFilter).forEach(
       (key) =>
         orderFieldsFilter[key] === undefined && delete orderFieldsFilter[key]
@@ -93,6 +110,7 @@ exports.list = (req, res, next) => {
     return sendErrorUnauthorized(res, "", "Please login first.");
   }
 };
+
 
 exports.downloadExcel = async (req, res) => {
   const { orderList, fomattedDateNow, totalOrder } = req.body;
