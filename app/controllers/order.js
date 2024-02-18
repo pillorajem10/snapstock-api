@@ -409,9 +409,16 @@ exports.add = (req, res, io) => {
 
               // Create notifications for each user
               users.forEach(user => {
+                let notificationMessage;
+                if (user._id.equals(decodedToken.user._id)) {
+                  notificationMessage = "You added an order";
+                } else {
+                  notificationMessage = `${decodedToken.user.fname} added an order`;
+                }
+
                 const notification = new Notification({
                   category: decodedToken.user.category,
-                  message: `${decodedToken.user.fname} added an order`,
+                  message: notificationMessage,
                   user: user._id // Add user ID to the notification
                 });
 
@@ -424,6 +431,7 @@ exports.add = (req, res, io) => {
                 });
               });
             });
+
 
           // Emit socket event if io is provided
           if (io) {
