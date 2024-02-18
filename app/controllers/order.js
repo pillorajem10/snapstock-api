@@ -436,7 +436,7 @@ exports.add = (req, res, io) => {
           // Emit socket event if io is provided
           if (io) {
             io.to(decodedToken.user.category).emit(
-              "newOrder",
+              "notify",
               `${decodedToken.user.fname} added an order`,
               (error) => {
                 if (error) {
