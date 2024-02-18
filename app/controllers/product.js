@@ -1,4 +1,6 @@
 const Product = require('../models/Product.js');
+const User = require('../models/User.js');
+const Notification = require('../models/Notification.js');
 const mongoose = require('mongoose');
 const puppeteer = require('puppeteer');
 const fs = require('fs');
@@ -8,6 +10,7 @@ const base64Img = require('base64-img');
 const excel = require('exceljs');
 const numeral = require("numeral");
 const pdf = require("html-pdf");
+const jwt = require('jsonwebtoken');
 
 const {
   sendError,
@@ -261,10 +264,11 @@ exports.downloadPDF = async (req, res, next) => {
 
 
 //CREATE PRODUCT
-exports.add = (req, res, next) => {
+exports.add = (req, res, io) => {
   let token = getToken(req.headers);
   if (token) {
-    // Capitalize the first letter of the "name" field in the request body
+    const decodedToken = jwt.decode(token);
+
     const capitalizeFirstLetter = (str) => str.charAt(0).toUpperCase() + str.slice(1);
     const capitalizedName = capitalizeFirstLetter(req.body.name);
 
@@ -272,7 +276,62 @@ exports.add = (req, res, next) => {
       if (err) {
         return sendError(res, err, 'Add product failed');
       } else {
-        return sendSuccess(res, product);
+        product.save((err) => {
+          if (err) {
+            return sendError(res, err, 'Failed to save product');
+          }
+
+          User.find({ category: decodedToken.user.category })
+            .exec((err, users) => {
+              if (err) {
+                console.error('Error getting users with the same category:', err);
+                return;
+              }
+
+              // Create notifications for each user
+              users.forEach(user => {
+                let notificationMessage;
+                if (user._id.equals(decodedToken.user._id)) {
+                  notificationMessage = "You added a product";
+                } else {
+                  notificationMessage = `${decodedToken.user.fname} added a product`;
+                }
+
+                const notification = new Notification({
+                  category: decodedToken.user.category,
+                  message: notificationMessage,
+                  user: user._id // Add user ID to the notification
+                });
+
+                // Save the notification to the database
+                notification.save((err) => {
+                  if (err) {
+                    console.error('Error saving notification:', err);
+                    return;
+                  }
+                });
+              });
+            });
+
+
+          // Emit socket event if io is provided
+          if (io) {
+            io.to(decodedToken.user.category).emit(
+              "notify",
+              `${decodedToken.user.fname} added a product`,
+              (error) => {
+                if (error) {
+                  console.error("Emit failed:", error);
+                } else {
+                  console.log("Emit successful");
+                }
+              }
+            );
+          }
+
+          // Send success response with the saved product
+          return sendSuccess(res, product);
+        });
       }
     });
   } else {
