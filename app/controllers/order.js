@@ -579,7 +579,7 @@ exports.deleteById = async (req, res, io) => {
         "notify",
         {
           token,
-          message: `${decodedToken.user.fname} added an order`,
+          message: `${decodedToken.user.fname} deleted an order`,
         },
         (error) => {
           if (error) {

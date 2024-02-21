@@ -536,7 +536,7 @@ exports.deleteById = (req, res, io) => {
             users.forEach(user => {
               let notificationMessage;
               if (user._id.equals(decodedToken.user._id)) {
-                notificationMessage = "You deleted an order";
+                notificationMessage = "You deleted an delivery";
               } else {
                 notificationMessage = `${decodedToken.user.fname} deleted a delivery`;
               }
