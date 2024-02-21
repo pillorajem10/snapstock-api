@@ -370,10 +370,11 @@ exports.getById = (req, res, next) => {
 
 
 //UPDATE BY ID
-exports.updateById = (req, res, next) => {
+exports.updateById = (req, res, io) => {
   let token = getToken(req.headers);
   if (token) {
-    // Capitalize the first letter of the "name" field in the request body
+    const decodedToken = jwt.decode(token);
+
     const capitalizeFirstLetter = (str) => str.charAt(0).toUpperCase() + str.slice(1);
     const capitalizedName = capitalizeFirstLetter(req.body.name);
 
@@ -385,6 +386,57 @@ exports.updateById = (req, res, next) => {
         if (err || !updatedProduct) {
           return sendError(res, err, 'Cannot update product');
         } else {
+          User.find({ category: decodedToken.user.category })
+            .exec((err, users) => {
+              if (err) {
+                console.error('Error getting users with the same category:', err);
+                return;
+              }
+
+              // Create notifications for each user
+              users.forEach(user => {
+                let notificationMessage;
+                if (user._id.equals(decodedToken.user._id)) {
+                  notificationMessage = "You updated a product";
+                } else {
+                  notificationMessage = `${decodedToken.user.fname} updated a product`;
+                }
+
+                const notification = new Notification({
+                  category: decodedToken.user.category,
+                  message: notificationMessage,
+                  user: user._id // Add user ID to the notification
+                });
+
+                // Save the notification to the database
+                notification.save((err) => {
+                  if (err) {
+                    console.error('Error saving notification:', err);
+                    return;
+                  }
+                });
+              });
+            });
+
+
+          // Emit socket event if io is provided
+          if (io) {
+            io.to(decodedToken.user.category).emit(
+              "notify",
+              {
+                token,
+                message: `${decodedToken.user.fname} updated a product`,
+              },
+              (error) => {
+                if (error) {
+                  console.error("Emit failed:", error);
+                } else {
+                  console.log("Emit successful");
+                }
+              }
+            );
+          }
+
           return sendSuccess(res, updatedProduct, 'Product updated successfully');
         }
       }
@@ -401,13 +453,66 @@ exports.updateById = (req, res, next) => {
 
 
 //DELETE BY ID
-exports.deleteById = (req, res, next) => {
+exports.deleteById = (req, res, io) => {
   let token = getToken(req.headers);
   if (token) {
+    const decodedToken = jwt.decode(token);
+
     Product.findByIdAndRemove(req.params.id, req.body, function (err, product) {
       if (err || !product) {
         return sendError(res, {}, 'Cannot delete product');
       } else {
+        User.find({ category: decodedToken.user.category })
+          .exec((err, users) => {
+            if (err) {
+              console.error('Error getting users with the same category:', err);
+              return;
+            }
+
+            // Create notifications for each user
+            users.forEach(user => {
+              let notificationMessage;
+              if (user._id.equals(decodedToken.user._id)) {
+                notificationMessage = "You deleted an product";
+              } else {
+                notificationMessage = `${decodedToken.user.fname} deleted a product`;
+              }
+
+              const notification = new Notification({
+                category: decodedToken.user.category,
+                message: notificationMessage,
+                user: user._id // Add user ID to the notification
+              });
+
+              // Save the notification to the database
+              notification.save((err) => {
+                if (err) {
+                  console.error('Error saving notification:', err);
+                  return;
+                }
+              });
+            });
+          });
+
+
+        // Emit socket event if io is provided
+        if (io) {
+          io.to(decodedToken.user.category).emit(
+            "notify",
+            {
+              token,
+              message: `${decodedToken.user.fname} deleted a product`,
+            },
+            (error) => {
+              if (error) {
+                console.error("Emit failed:", error);
+              } else {
+                console.log("Emit successful");
+              }
+            }
+          );
+        }
+
         return sendSuccess(res, product, 'Product deleted successfully.');
       }
     });

@@ -371,10 +371,17 @@ exports.getById = (req, res, next) => {
 
 
 //UPDATE BY ID
-exports.updateById = async (req, res, next) => {
+exports.updateById = async (req, res, io) => {
   const deliveryId = req.params.id;
+  let token = getToken(req.headers);
+  const decodedToken = jwt.decode(token);
 
   try {
+    // Check if token is missing
+    if (!token) {
+      return sendErrorUnauthorized(res, '', 'Please login first.');
+    }
+
     // Fetch the existing delivery to get the previous productId and quantity
     const existingDelivery = await Delivery.findById(deliveryId).populate('productId');
 
@@ -407,13 +414,64 @@ exports.updateById = async (req, res, next) => {
       await updateProductStocks(updatedDelivery.productId, req.body.qty - prevQty);  // Update product stocks based on qty difference
     }
 
-    // Send success response with the updated delivery
+    User.find({ category: decodedToken.user.category })
+      .exec((err, users) => {
+        if (err) {
+          console.error('Error getting users with the same category:', err);
+          return;
+        }
+
+        // Create notifications for each user
+        users.forEach(user => {
+          let notificationMessage;
+          if (user._id.equals(decodedToken.user._id)) {
+            notificationMessage = "You updated a delivery";
+          } else {
+            notificationMessage = `${decodedToken.user.fname} updated a delivery`;
+          }
+
+          const notification = new Notification({
+            category: decodedToken.user.category,
+            message: notificationMessage,
+            user: user._id // Add user ID to the notification
+          });
+
+          // Save the notification to the database
+          notification.save((err) => {
+            if (err) {
+              console.error('Error saving notification:', err);
+              return;
+            }
+          });
+        });
+      });
+
+
+    // Emit socket event if io is provided
+    if (io) {
+      io.to(decodedToken.user.category).emit(
+        "notify",
+        {
+          token,
+          message: `${decodedToken.user.fname} updated a delivery`,
+        },
+        (error) => {
+          if (error) {
+            console.error("Emit failed:", error);
+          } else {
+            console.log("Emit successful");
+          }
+        }
+      );
+    }
+
     return sendSuccess(res, updatedDelivery, 'Delivery updated successfully');
   } catch (error) {
     // Handle errors
     return sendError(res, error, 'Failed to update delivery');
   }
 };
+
 
 // Function to update a product's stocks
 const updateProductStocks = async (productId, quantity) => {
@@ -445,25 +503,83 @@ const updateProductStocks = async (productId, quantity) => {
 
 
 // DELETE BY ID
-exports.deleteById = (req, res, next) => {
-  Delivery.findByIdAndRemove(req.params.id, req.body, function (err, delivery) {
-    if (err || !delivery) {
-      return sendError(res, {}, 'Cannot delete delivery');
-    } else {
-      const productId = delivery.productId;
-      const qty = delivery.qty;
+exports.deleteById = (req, res, io) => {
+  let token = getToken(req.headers);
+  if (token) {
+    const decodedToken = jwt.decode(token);
 
-      // Find the product and update the stocks by subtracting the quantity
-      Product.findById(productId, function (err, product) {
-        if (err || !product) {
-          return sendError(res, err, 'Cannot get product');
-        } else {
-          product.stocks = Math.max(0, product.stocks - qty);
-          product.save();
+    Delivery.findByIdAndRemove(req.params.id, req.body, function (err, delivery) {
+      if (err || !delivery) {
+        return sendError(res, {}, 'Cannot delete delivery');
+      } else {
+        const productId = delivery.productId;
+        const qty = delivery.qty;
+
+        // Find the product and update the stocks by subtracting the quantity
+        Product.findById(productId, function (err, product) {
+          if (err || !product) {
+            return sendError(res, err, 'Cannot get product');
+          } else {
+            product.stocks = Math.max(0, product.stocks - qty);
+            product.save();
+          }
+        });
+
+        User.find({ category: decodedToken.user.category })
+          .exec((err, users) => {
+            if (err) {
+              console.error('Error getting users with the same category:', err);
+              return;
+            }
+
+            // Create notifications for each user
+            users.forEach(user => {
+              let notificationMessage;
+              if (user._id.equals(decodedToken.user._id)) {
+                notificationMessage = "You deleted an delivery";
+              } else {
+                notificationMessage = `${decodedToken.user.fname} deleted a delivery`;
+              }
+
+              const notification = new Notification({
+                category: decodedToken.user.category,
+                message: notificationMessage,
+                user: user._id // Add user ID to the notification
+              });
+
+              // Save the notification to the database
+              notification.save((err) => {
+                if (err) {
+                  console.error('Error saving notification:', err);
+                  return;
+                }
+              });
+            });
+          });
+
+
+        // Emit socket event if io is provided
+        if (io) {
+          io.to(decodedToken.user.category).emit(
+            "notify",
+            {
+              token,
+              message: `${decodedToken.user.fname} deleted a delivery`,
+            },
+            (error) => {
+              if (error) {
+                console.error("Emit failed:", error);
+              } else {
+                console.log("Emit successful");
+              }
+            }
+          );
         }
-      });
 
-      return sendSuccess(res, delivery, 'Re-stock product deleted successfully');
-    }
-  });
+        return sendSuccess(res, delivery, 'Re-stock product deleted successfully');
+      }
+    });
+  } else {
+    return sendErrorUnauthorized(res, "", "Please login first.")
+  }
 }

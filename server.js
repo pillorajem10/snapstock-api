@@ -39,7 +39,7 @@ if (process.env.SERVER === "LIVE") {
   io = socketIo(server, {
     cors: {
       origin: frontEndUrl,
-      methods: ["GET", "POST"]
+      methods: ["GET", "POST", "DELETE", "PUT"]
     }
   });
 };

@@ -7,8 +7,8 @@ module.exports = (io) => {
   router.get('/', list);
   router.post('/', (req, res) => add(req, res, io));
   router.get('/:id', getById);
-  router.put('/:id', updateById);
-  router.delete('/:id', deleteById);
+  router.put('/:id', (req, res) => updateById(req, res, io));
+  router.delete('/:id', (req, res) => deleteById(req, res, io));
 
   // generate reports
   router.post('/report/generatepdf', downloadPDF);

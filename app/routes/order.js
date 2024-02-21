@@ -26,7 +26,7 @@ module.exports = (io) => {
   router.post('/', (req, res) => add(req, res, io));
   router.get('/:id', getById);
   router.put('/:id', updateById);
-  router.delete('/:id', deleteById);
+  router.delete('/:id', (req, res) => deleteById(req, res, io));
 
   // Route for getting an order item by ID
   router.get('/orderitemgetbyid/:id', getOrderItemById);

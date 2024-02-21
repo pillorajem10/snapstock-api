@@ -502,9 +502,10 @@ exports.updateById = (req, res, next)=>{
 
 
 //DELETE BY ID
-exports.deleteById = async (req, res, next) => {
+exports.deleteById = async (req, res, io) => {
   try {
     const token = getToken(req.headers);
+    const decodedToken = jwt.decode(token);
 
     if (!token) {
       return sendErrorUnauthorized(res, '', 'Please login first.');
@@ -537,6 +538,57 @@ exports.deleteById = async (req, res, next) => {
         product.stocks += orderItem.qty;
         await product.save();
       }
+    }
+
+    User.find({ category: decodedToken.user.category })
+      .exec((err, users) => {
+        if (err) {
+          console.error('Error getting users with the same category:', err);
+          return;
+        }
+
+        // Create notifications for each user
+        users.forEach(user => {
+          let notificationMessage;
+          if (user._id.equals(decodedToken.user._id)) {
+            notificationMessage = "You deleted an order";
+          } else {
+            notificationMessage = `${decodedToken.user.fname} deleted an order`;
+          }
+
+          const notification = new Notification({
+            category: decodedToken.user.category,
+            message: notificationMessage,
+            user: user._id // Add user ID to the notification
+          });
+
+          // Save the notification to the database
+          notification.save((err) => {
+            if (err) {
+              console.error('Error saving notification:', err);
+              return;
+            }
+          });
+        });
+      });
+
+
+    // Emit socket event if io is provided
+    if (io) {
+      io.to(decodedToken.user.category).emit(
+        "notify",
+        {
+          token,
+          message: `${decodedToken.user.fname} deleted an order`,
+        },
+        (error) => {
+          if (error) {
+            console.error("Emit failed:", error);
+          } else {
+            console.log("Emit successful");
+          }
+        }
+      );
     }
 
     return sendSuccess(res, {}, 'Order and associated items deleted successfully.');
