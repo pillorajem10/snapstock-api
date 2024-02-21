@@ -6,7 +6,7 @@ module.exports = (io) => {
   const { list, add, getById, updateById, deleteById, addQuantityOfProds, downloadPDF, downloadExcel } = require('../controllers/product');
 
   router.get('/', list);
-    router.post('/', (req, res) => add(req, res, io));
+  router.post('/', (req, res) => add(req, res, io));
   router.get('/:id', getById);
   router.put('/:id', updateById);
   router.delete('/:id', deleteById);

@@ -1,5 +1,7 @@
 const Delivery = require('../models/Delivery.js');
 const Product = require('../models/Product.js');
+const User = require('../models/User.js');
+const Notification = require('../models/Notification.js');
 const puppeteer = require('puppeteer');
 const mongoose = require('mongoose');
 const fs = require('fs');
@@ -9,6 +11,7 @@ const base64Img = require('base64-img');
 const excel = require('exceljs');
 const numeral = require('numeral');
 const pdf = require("html-pdf");
+const jwt = require('jsonwebtoken');
 
 const {
   sendError,
@@ -254,38 +257,96 @@ exports.downloadExcel = async (req, res) => {
 
 
 //CREATE PRODUCT
-exports.add = (req, res, next) => {
-  Delivery.create(req.body, function (err, delivery) {
-    if (err) {
-      return sendError(res, err, 'Add delivery failed')
-    } else {
-      Product.findById(req.body.productId, function (err, product) {
-        if (err || !product) {
-          return sendError(res, err, 'Cannot get product')
-        } else {
-          const convertedDate = convertMomentWithFormat(delivery.createdAt);
-          const month = +convertedDate.split('/')[0];
-          const date = +convertedDate.split('/')[1];
-          const year = +convertedDate.split('/')[2];
+exports.add = (req, res, io) => {
+  let token = getToken(req.headers);
+  if (token) {
+    const decodedToken = jwt.decode(token);
 
-          delivery.monthDelivered = month;
-          delivery.dateDelivered = date;
-          delivery.yearDelivered = year;
+    Delivery.create(req.body, function (err, delivery) {
+      if (err) {
+        return sendError(res, err, 'Add delivery failed')
+      } else {
+        Product.findById(req.body.productId, function (err, product) {
+          if (err || !product) {
+            return sendError(res, err, 'Cannot get product')
+          } else {
+            const convertedDate = convertMomentWithFormat(delivery.createdAt);
+            const month = +convertedDate.split('/')[0];
+            const date = +convertedDate.split('/')[1];
+            const year = +convertedDate.split('/')[2];
 
-          delivery.total = product.price * delivery.qty;
-          delivery.productName = product.name;
+            delivery.monthDelivered = month;
+            delivery.dateDelivered = date;
+            delivery.yearDelivered = year;
 
-          product.stocks = product.stocks + delivery.qty;
+            delivery.total = product.price * delivery.qty;
+            delivery.productName = product.name;
+
+            product.stocks = product.stocks + delivery.qty;
 
 
-          product.save();
-          delivery.save();
+            product.save();
+            delivery.save();
 
-          return sendSuccess(res, delivery)
-        }
-      });
-    }
-  });
+            User.find({ category: decodedToken.user.category })
+              .exec((err, users) => {
+                if (err) {
+                  console.error('Error getting users with the same category:', err);
+                  return;
+                }
+
+                // Create notifications for each user
+                users.forEach(user => {
+                  let notificationMessage;
+                  if (user._id.equals(decodedToken.user._id)) {
+                    notificationMessage = "You added a delivery";
+                  } else {
+                    notificationMessage = `${decodedToken.user.fname} added a delivery`;
+                  }
+
+                  const notification = new Notification({
+                    category: decodedToken.user.category,
+                    message: notificationMessage,
+                    user: user._id // Add user ID to the notification
+                  });
+
+                  // Save the notification to the database
+                  notification.save((err) => {
+                    if (err) {
+                      console.error('Error saving notification:', err);
+                      return;
+                    }
+                  });
+                });
+              });
+
+
+            // Emit socket event if io is provided
+            if (io) {
+              io.to(decodedToken.user.category).emit(
+                "notify",
+                {
+                  token,
+                  message: `${decodedToken.user.fname} added a delivery`,
+                },
+                (error) => {
+                  if (error) {
+                    console.error("Emit failed:", error);
+                  } else {
+                    console.log("Emit successful");
+                  }
+                }
+              );
+            }
+
+            return sendSuccess(res, delivery)
+          }
+        });
+      }
+    });
+  } else {
+    return sendErrorUnauthorized(res, "", "Please login first.");
+  }
 }
 
 
