@@ -437,7 +437,10 @@ exports.add = (req, res, io) => {
           if (io) {
             io.to(decodedToken.user.category).emit(
               "notify",
-              `${decodedToken.user.fname} added an order`,
+              {
+                token,
+                message: `${decodedToken.user.fname} added an order`,
+              },
               (error) => {
                 if (error) {
                   console.error("Emit failed:", error);

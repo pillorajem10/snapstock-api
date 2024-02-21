@@ -88,7 +88,7 @@ io.on("connection", (socket) => {
 //ROUTES
 app.use("/product", product(io));
 app.use("/order", order(io));
-app.use("/delivery", delivery);
+app.use("/delivery", delivery(io));
 app.use("/user", user);
 app.use("/auth", auth);
 app.use("/category", category);
