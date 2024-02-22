@@ -63,31 +63,32 @@ exports.list = (req, res, next) => {
       dateOrdered: req.query.dateOrdered ? +req.query.dateOrdered : undefined,
       yearOrdered: req.query.yearOrdered ? +req.query.yearOrdered : undefined,
       category: req.query.category ? { $in: categIds } : undefined,
-      // $text: req.query.customerName ? { $search: req.query.customerName } : undefined,
     };
 
     if (customerName) {
       orderFieldsFilter.customerName = { $regex: customerName, $options: "i" }; // Case-insensitive regex search
     }
 
-    // Get the current date in Manila time zone (UTC+8)
-    const todayManila = new Date(new Date().getTime() + (8 * 60 * 60 * 1000));
-    const currentMonth = todayManila.getMonth() + 1; // Month is 0-indexed in JavaScript Date object
-    const currentDate = todayManila.getDate();
-    const currentYear = todayManila.getFullYear();
+    if (orderFieldsFilter.monthOrdered && orderFieldsFilter.dateOrdered && orderFieldsFilter.yearOrdered) {
+      // Get the current date in Manila time zone (UTC+8)
+      const todayManila = new Date(new Date().getTime() + (8 * 60 * 60 * 1000));
+      const currentMonth = todayManila.getMonth() + 1; // Month is 0-indexed in JavaScript Date object
+      const currentDate = todayManila.getDate();
+      const currentYear = todayManila.getFullYear();
 
-    // Filter orders within the current day in Manila time
-    const utcDateOrderedFilter = {
-      monthOrdered: currentMonth,
-      dateOrdered: currentDate,
-      yearOrdered: currentYear
-    };
+      // Filter orders within the current day in Manila time
+      const utcDateOrderedFilter = {
+        monthOrdered: currentMonth,
+        dateOrdered: currentDate,
+        yearOrdered: currentYear
+      };
 
-    // Combine the filters
-    orderFieldsFilter = {
-      ...orderFieldsFilter,
-      ...utcDateOrderedFilter
-    };
+      // Combine the filters
+      orderFieldsFilter = {
+        ...orderFieldsFilter,
+        ...utcDateOrderedFilter
+      };
+    }
 
     // Remove undefined keys from the filter
     Object.keys(orderFieldsFilter).forEach(
@@ -110,6 +111,7 @@ exports.list = (req, res, next) => {
     return sendErrorUnauthorized(res, "", "Please login first.");
   }
 };
+
 
 
 
