@@ -1,4 +1,5 @@
 const Category = require('../models/Category.js');
+const jwt = require('jsonwebtoken');
 
 const { sendError, sendSuccess, getToken, sendErrorUnauthorized } = require ('../utils/methods');
 
@@ -7,48 +8,56 @@ const { sendError, sendSuccess, getToken, sendErrorUnauthorized } = require ('..
 exports.list = (req, res, next) => {
   let token = getToken(req.headers);
   if (token) {
-    const { pageIndex, pageSize, sort_by, sort_direction, name } = req.query;
+    const decodedToken = jwt.decode(token);
+
+    console.log('DECODED TOKEN', decodedToken.user.role);
+
+    if (decodedToken.user.role === 3) {
+      const { pageIndex, pageSize, sort_by, sort_direction, name } = req.query;
 
 
-    const page = pageIndex;
-    const limit = pageSize;
-    const sortDirection = sort_direction ? sort_direction.toLowerCase() : undefined;
+      const page = pageIndex;
+      const limit = pageSize;
+      const sortDirection = sort_direction ? sort_direction.toLowerCase() : undefined;
 
-    let sortPageLimit = {
-      page,
-      limit
-    };
-
-    if (sort_by && sortDirection) {
-      sortPageLimit = {
-        sort: { [sort_by]: sortDirection },
+      let sortPageLimit = {
         page,
-        limit,
+        limit
       };
-    }
 
-    const categoryFieldsFilter = {
-      stock: req.query.minimumPrice,
-      name: name ? { $regex: name, $options: 'i' } : undefined,
-    };
-
-
-    // Will remove a key if that key is undefined
-    Object.keys(categoryFieldsFilter).forEach(key => categoryFieldsFilter[key] === undefined && delete categoryFieldsFilter[key]);
-
-    const filterOptions = [
-      { $match: categoryFieldsFilter },
-    ];
-
-    const aggregateQuery = Category.aggregate(filterOptions);
-
-    Category.aggregatePaginate(aggregateQuery, sortPageLimit, (err, result) => {
-      if (err) {
-        return sendError(res, err, 'Server Failed');
-      } else {
-        return sendSuccess(res, result);
+      if (sort_by && sortDirection) {
+        sortPageLimit = {
+          sort: { [sort_by]: sortDirection },
+          page,
+          limit,
+        };
       }
-    });
+
+      const categoryFieldsFilter = {
+        stock: req.query.minimumPrice,
+        name: name ? { $regex: name, $options: 'i' } : undefined,
+      };
+
+
+      // Will remove a key if that key is undefined
+      Object.keys(categoryFieldsFilter).forEach(key => categoryFieldsFilter[key] === undefined && delete categoryFieldsFilter[key]);
+
+      const filterOptions = [
+        { $match: categoryFieldsFilter },
+      ];
+
+      const aggregateQuery = Category.aggregate(filterOptions);
+
+      Category.aggregatePaginate(aggregateQuery, sortPageLimit, (err, result) => {
+        if (err) {
+          return sendError(res, err, 'Server Failed');
+        } else {
+          return sendSuccess(res, result);
+        }
+      });
+    } else {
+      return sendErrorUnauthorized(res, "", "You are not authorized to access this data.")
+    }
   } else {
     return sendErrorUnauthorized(res, "", "Please login first.")
   }

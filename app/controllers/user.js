@@ -332,11 +332,13 @@ exports.add = async (req, res) => {
 
             req.body.category = cat._id.toString();
 
-            User.findOne({
-              email
-            }).then(existingUser => {
+            User.findOne({ $or: [{ email }, { username }] }).then(existingUser => {
               if (existingUser) {
-                return sendError(res, err, 'User with this email already exists');
+                if (existingUser.email === email) {
+                  return sendError(res, err, 'User with this email already exists');
+                } else if (existingUser.username === username) {
+                  return sendError(res, err, 'User with this username already exists');
+                }
               }
 
               const capitalizedFname = capitalizeFirstLetter(req.body.fname);
@@ -403,9 +405,13 @@ exports.addEmplooyeeUser = (req, res) => {
       // req.body.role = 0;
       req.body.password = generateRandomPassword(); // Set a random 6-digit password
 
-      User.findOne({ email }).then(existingUser => {
+      User.findOne({ $or: [{ email }, { username }] }).then(existingUser => {
         if (existingUser) {
-          return sendError(res, 'User with this email already exists');
+          if (existingUser.email === email) {
+            return sendError(res, '', 'User with this email already exists');
+          } else if (existingUser.username === username) {
+            return sendError(res, '', 'User with this username already exists');
+          }
         }
 
         const capitalizeFirstLetter = (str) => str.charAt(0).toUpperCase() + str.slice(1);
@@ -440,7 +446,11 @@ exports.addEmplooyeeUser = (req, res) => {
           console.error('Error creating user:', error);
           return res.status(500).json({ error: 'Internal server error' });
         });
+      }).catch((error) => {
+        console.error('Error checking existing user:', error);
+        return res.status(500).json({ error: 'Internal server error' });
       });
+
     } catch (error) {
       console.error('Error creating user:', error);
       return res.status(500).json({ error: 'Internal server error' });
