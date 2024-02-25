@@ -18,55 +18,63 @@ const frontEndUrl = process.env.SERVER === 'LIVE' ? 'https://snapstock.site' : '
 
 // Get all users
 exports.list = (req, res) => {
-  const { pageIndex, pageSize, username } = req.query;
+  let token = getToken(req.headers);
+  if (token) {
+    const decodedToken = jwt.decode(token);
+    if (decodedToken.user.role === 3 || decodedToken.user.role === 1) {
+      const { pageIndex, pageSize, username } = req.query;
 
-  // console.log("REQ QUERYY", req.query);
+      // console.log("REQ QUERYY", req.query);
 
-  const page = pageIndex;
-  const limit = pageSize;
+      const page = pageIndex;
+      const limit = pageSize;
 
-  let sortPageLimit = {
-    page,
-    limit
-  };
+      let sortPageLimit = {
+        page,
+        limit
+      };
 
-  let categIds = req.query.category && req.query.category.split(',').map(function(categ) {
-    return mongoose.Types.ObjectId(categ);
-  });
-
-
-  const userFieldsFilter = {
-    username: username ? { $regex: username, $options: 'i' } : undefined,
-    category: req.query.category ? { $in: categIds } : undefined,
-  };
+      let categIds = req.query.category && req.query.category.split(',').map(function(categ) {
+        return mongoose.Types.ObjectId(categ);
+      });
 
 
+      const userFieldsFilter = {
+        username: username ? { $regex: username, $options: 'i' } : undefined,
+        category: req.query.category ? { $in: categIds } : undefined,
+      };
 
-  // console.log("[[[[FILTER FIELDSSSSSSSSS]]]]", userFieldsFilter)
+      // console.log("[[[[FILTER FIELDSSSSSSSSS]]]]", userFieldsFilter)
 
-  // Will remove a key if that key is undefined
-  Object.keys(userFieldsFilter).forEach(key => userFieldsFilter[key] === undefined && delete userFieldsFilter[key]);
+      // Will remove a key if that key is undefined
+      Object.keys(userFieldsFilter).forEach(key => userFieldsFilter[key] === undefined && delete userFieldsFilter[key]);
 
-  const filterOptions = [
-    { $match: userFieldsFilter },
-    // { $sort: { createdAt: 1 } },
-  ];
+      const filterOptions = [
+        { $match: userFieldsFilter },
+        // { $sort: { createdAt: 1 } },
+      ];
 
-  const aggregateQuery = User.aggregate(filterOptions);
+      const aggregateQuery = User.aggregate(filterOptions);
 
-  /*User.find({}, (err, users) => {
-    if (err) return res.status(400).json({ message: 'Error fetching users' });
-    res.json(users);
-  });*/
+      /*User.find({}, (err, users) => {
+        if (err) return res.status(400).json({ message: 'Error fetching users' });
+        res.json(users);
+      });*/
 
-  User.aggregatePaginate(aggregateQuery, sortPageLimit, (err, result) => {
-    if (err) {
-      // console.log("ERRoRRRRRRRRRRRRRRRRR", err)
-      return sendError(res, err, 'Server Failed');
+      User.aggregatePaginate(aggregateQuery, sortPageLimit, (err, result) => {
+        if (err) {
+          // console.log("ERRoRRRRRRRRRRRRRRRRR", err)
+          return sendError(res, err, 'Server Failed');
+        } else {
+          return sendSuccess(res, result);
+        }
+      });
     } else {
-      return sendSuccess(res, result);
+      return sendErrorUnauthorized(res, "", "You are not authorized to access this data.")
     }
-  });
+  } else {
+    return sendErrorUnauthorized(res, "", "Please login first.");
+  }
 };
 
 
