@@ -89,7 +89,7 @@ io.on("connection", (socket) => {
 app.use("/product", product(io));
 app.use("/order", order(io));
 app.use("/delivery", delivery(io));
-app.use("/user", user);
+app.use("/user", user(io));
 app.use("/auth", auth);
 app.use("/category", category);
 app.use("/notification", notification);

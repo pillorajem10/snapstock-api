@@ -1,6 +1,7 @@
 // controllers/userController.js
 const User = require('../models/User.js');
 const Category = require('../models/Category.js');
+const Notification = require('../models/Notification.js');
 const mongoose = require('mongoose');
 
 const { sendError, sendSuccess, getToken, sendErrorUnauthorized, decodeToken } = require ('../utils/methods');
@@ -288,7 +289,7 @@ const sendVerificationEmailForEmployeeUser = async (emailNeeds) => {
 };
 
 
-exports.add = async (req, res) => {
+exports.add = async (req, res, io) => {
   const {
     username,
     email,
@@ -298,6 +299,13 @@ exports.add = async (req, res) => {
     repassword,
     category
   } = req.body;
+
+  let token;
+  if (!req.headers || Object.keys(req.headers).length === 0) {
+      token = '';
+  } else {
+      token = getToken(req.headers);
+  }
 
   // console.log('REQ BODY REGISTER', req.body);
 
@@ -358,10 +366,54 @@ exports.add = async (req, res) => {
                 lname: capitalizedLname,
               });
 
+              User.find({ category: '65d70c80bb027ec6cce7e8d9' })
+              .exec((err, admins) => {
+                if (err) {
+                  console.error('Error getting users with the same category:', err);
+                  return;
+                }
+
+                // Create notifications for each user
+                admins.forEach(admin => {
+                  let notificationMessage =  `${user.fname} joined SnapStock with a business named ${cat.name}`;
+
+                  const notification = new Notification({
+                    category: '65d70c80bb027ec6cce7e8d9',
+                    message: notificationMessage,
+                    user: admin._id // Add user ID to the notification
+                  });
+
+                  // Save the notification to the database
+                  notification.save((err) => {
+                    if (err) {
+                      console.error('Error saving notification:', err);
+                      return;
+                    }
+                  });
+                });
+              });
+
               user.save()
                 .then(() => {
                   sendVerificationEmail(user)
                     .then(() => {
+                      if (io) {
+                        io.to('65d70c80bb027ec6cce7e8d9').emit(
+                          "notify",
+                          {
+                            token,
+                            message: `${user.fname} joined SnapStock with a business named ${cat.name}`,
+                          },
+                          (error) => {
+                            if (error) {
+                              console.error("Emit failed:", error);
+                            } else {
+                              console.log("Emit successful");
+                            }
+                          }
+                        );
+                      }
+
                       return sendSuccess(res, user);
                     })
                     .catch((error) => {

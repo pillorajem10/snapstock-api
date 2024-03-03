@@ -1,4 +1,10 @@
 const Category = require('../models/Category.js');
+const User = require('../models/User.js');
+const Product = require('../models/Product.js');
+const Order = require('../models/Order.js');
+const OrderItem = require('../models/OrderItem.js');
+const Delivery = require('../models/Delivery.js');
+const Notification = require('../models/Notification.js');
 const jwt = require('jsonwebtoken');
 
 const { sendError, sendSuccess, getToken, sendErrorUnauthorized } = require ('../utils/methods');
@@ -157,13 +163,34 @@ exports.updateById = (req, res, next) => {
 exports.deleteById = (req, res, next) => {
   let token = getToken(req.headers);
   if (token) {
-    Category.findByIdAndRemove(req.params.id, req.body, function (err, category) {
-      if (err || !category) {
-        return sendError(res, {}, 'Cannot delete category');
-      } else {
-        return sendSuccess(res, category);
-      }
-    });
+    const decodedToken = jwt.decode(token);
+    if (decodedToken.user.role === 3) {
+      Category.findByIdAndRemove(req.params.id, req.body, function (err, category) {
+        if (err || !category) {
+          return sendError(res, {}, 'Cannot delete category');
+        } else {
+          // Delete related products
+          const deleteRelatedDocuments = (Model, filter, res) => {
+            Model.deleteMany(filter, (err, result) => {
+              if (err) {
+                return sendError(res, {}, 'Cannot delete related products');
+              }
+            });
+          };
+
+          deleteRelatedDocuments(User, { category: req.params.id }, res);
+          deleteRelatedDocuments(Product, { category: req.params.id }, res);
+          deleteRelatedDocuments(Order, { category: req.params.id }, res);
+          deleteRelatedDocuments(OrderItem, { category: req.params.id }, res);
+          deleteRelatedDocuments(Delivery, { category: req.params.id }, res);
+          deleteRelatedDocuments(Notification, { category: req.params.id }, res);
+
+          return sendSuccess(res, {}, 'Business and related items deleted successfully.');
+        }
+      });
+    } else {
+        return sendErrorUnauthorized(res, "", "You are not authorized to access this data.")
+    }
   } else {
     return sendErrorUnauthorized(res, "", "Please login first.")
   }
