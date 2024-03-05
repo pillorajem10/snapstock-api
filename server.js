@@ -21,6 +21,7 @@ const delivery = require("./app/routes/delivery");
 const user = require("./app/routes/user");
 const auth = require("./app/routes/auth");
 const category = require("./app/routes/category");
+const sale = require("./app/routes/sale");
 const notification = require("./app/routes/notification");
 
 //MIDDLEWARES
@@ -93,6 +94,7 @@ app.use("/user", user(io));
 app.use("/auth", auth);
 app.use("/category", category);
 app.use("/notification", notification);
+app.use("/sale", sale);
 
 // LISTENER
 server.listen(port, () => {
