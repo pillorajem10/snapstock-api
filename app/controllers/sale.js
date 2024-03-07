@@ -160,7 +160,7 @@ exports.deleteById = (req, res, next) => {
       if (err || !sale) {
         return sendError(res, {}, 'Cannot delete sale');
       } else {
-        return sendSuccess(res, updatedSale);
+        return sendSuccess(res, sale, 'Sale deleted successfully.');
       }
     });
   } else {
