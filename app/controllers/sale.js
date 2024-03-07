@@ -93,7 +93,7 @@ exports.add = (req, res, next) => {
     if (err) {
       return sendError(res, err, 'Add sale failed')
     } else {
-      return sendSuccess(res, sale)
+      return sendSuccess(res, sale, 'Sales for today added successfully.')
     }
   });
 }
