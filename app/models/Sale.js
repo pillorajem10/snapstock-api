@@ -8,6 +8,9 @@ let SaleSchema = new mongoose.Schema(
   {
     date: { type: String, default: '' },
     price: { type: Number, default: 0 },
+    monthOrdered: { type: Number, default: 0 },
+    dateOrdered: { type: Number, default: 0 },
+    yearOrdered: { type: Number, default: 0 },
     category: { type: Schema.ObjectId, ref: 'Category' },
   },
   { timestamps: true }
