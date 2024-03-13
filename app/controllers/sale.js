@@ -2,6 +2,7 @@ const Category = require('../models/Category.js');
 const User = require('../models/User.js');
 const Sale = require('../models/Sale.js');
 const jwt = require('jsonwebtoken');
+const mongoose = require('mongoose');
 
 const { sendError, sendSuccess, getToken, sendErrorUnauthorized } = require ('../utils/methods');
 
@@ -35,9 +36,19 @@ exports.list = (req, res, next) => {
         };
       }
 
+      let categIds =
+        req.query.category &&
+        req.query.category.split(",").map(function (categ) {
+          return mongoose.Types.ObjectId(categ);
+        });
+
       const saleFieldsFilter = {
         stock: req.query.minimumPrice,
         name: name ? { $regex: name, $options: 'i' } : undefined,
+        monthOrdered: req.query.monthOrdered ? +req.query.monthOrdered : undefined,
+        dateOrdered: req.query.dateOrdered ? +req.query.dateOrdered : undefined,
+        yearOrdered: req.query.yearOrdered ? +req.query.yearOrdered : undefined,
+        category: req.query.category ? { $in: categIds } : undefined,
       };
 
 
